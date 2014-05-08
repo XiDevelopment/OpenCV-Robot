@@ -10,6 +10,8 @@ import android.util.Log;
 public class BeaconBounds {
 	private ColorBounds lowerBound;
 	private ColorBounds upperBound;
+	private List<ContourExtremePoints> contours;
+
 	private Point globalCoordinate;
 
 	static private List<BeaconBounds> beaconBounds;
@@ -70,6 +72,14 @@ public class BeaconBounds {
 
 		Log.i("BeaconBounds::Class", "Finished createBounds!");
 		return true;
+	}
+	
+	public List<ContourExtremePoints> getContours() {
+		return contours;
+	}
+
+	public void setContours(List<ContourExtremePoints> contours) {
+		this.contours = contours;
 	}
 
 	@Override
