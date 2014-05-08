@@ -1,7 +1,5 @@
 package at.int3ro.robot;
 
-import java.io.IOException;
-import java.lang.reflect.Method;
 import java.util.List;
 
 import org.opencv.android.JavaCameraView;

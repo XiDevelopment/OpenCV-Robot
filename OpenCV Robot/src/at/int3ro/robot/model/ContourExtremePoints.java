@@ -23,19 +23,19 @@ public class ContourExtremePoints {
 		// Start with extreme Values
 		bottom = new Point(-1000000, -1000000);
 		top = new Point(1000000, 1000000);
-		right = new Point(-1000000, -1000000);
-		left = new Point(1000000, 1000000);
+		right = new Point(1000000, 1000000);
+		left = new Point(-1000000, -1000000);
 
 		// Calculate Extreme Points
 		List<Point> points = contour.toList();
 		for (Point p : points) {
-			if (p.y > bottom.y)
+			if (p.x > bottom.x)
 				bottom = p;
-			if (p.y < top.y)
+			if (p.x < top.x)
 				top = p;
-			if (p.x > right.x)
+			if (p.y < right.y)
 				right = p;
-			if (p.x < left.x)
+			if (p.y > left.y)
 				left = p;
 		}
 	}
