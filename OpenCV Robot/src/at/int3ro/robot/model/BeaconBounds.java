@@ -10,6 +10,22 @@ import android.util.Log;
 public class BeaconBounds {
 	private ColorBounds lowerBound;
 	private ColorBounds upperBound;
+	private List<ContourExtremePoints> contours;
+	private int calculateDelay = 0;
+
+	public void startDelay(int time) {
+		calculateDelay = time;
+	}
+
+	public boolean isDelay() {
+		if (calculateDelay > 0) {
+			calculateDelay--;
+			return true;
+		} else {
+			return false;
+		}
+	}
+
 	private Point globalCoordinate;
 
 	static private List<BeaconBounds> beaconBounds;
@@ -18,12 +34,18 @@ public class BeaconBounds {
 		return beaconBounds;
 	}
 
+	static public void clearBeaconBounds() {
+		if (beaconBounds != null)
+			beaconBounds.clear();
+	}
+
 	public BeaconBounds(ColorBounds lowerBound, ColorBounds upperBound,
 			Point globalCoordinate) {
 		super();
 		this.lowerBound = lowerBound;
 		this.upperBound = upperBound;
 		this.globalCoordinate = globalCoordinate;
+		this.contours = new ArrayList<ContourExtremePoints>();
 	}
 
 	public ColorBounds getLowerBound() {
@@ -70,6 +92,17 @@ public class BeaconBounds {
 
 		Log.i("BeaconBounds::Class", "Finished createBounds!");
 		return true;
+	}
+
+	public List<ContourExtremePoints> getContours() {
+		return contours;
+	}
+
+	public void setContours(List<ContourExtremePoints> contours) {
+		if (contours == null)
+			this.contours.clear();
+		else
+			this.contours = contours;
 	}
 
 	@Override
