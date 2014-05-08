@@ -37,6 +37,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import at.int3ro.robot.controller.MoveFacade;
 import at.int3ro.robot.model.BeaconBounds;
+import at.int3ro.robot.model.BeaconContour;
 import at.int3ro.robot.model.ColorBounds;
 import at.int3ro.robot.model.ContourExtremePoints;
 
@@ -193,8 +194,7 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 			beaconColorSelect = true;
 			drawBeacons = false;
 			beaconColors.clear();
-			Toast.makeText(this, "Start with Lower color of 1 beacon",
-					Toast.LENGTH_SHORT).show();
+			Toast.makeText(this, "Red Color", Toast.LENGTH_SHORT).show();
 		} else if (item == mItemClearBeaconColor) {
 			beaconColors.clear();
 			beaconColorSelect = false;
@@ -231,11 +231,11 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 		Core.inRange(mTreshhold, lowerBound, upperBound, mTreshhold);
 
 		// Apply Filters
-		Imgproc.GaussianBlur(mTreshhold, mTreshhold, new Size(3, 3), 0);
-		Imgproc.dilate(mTreshhold, mTreshhold, Imgproc.getStructuringElement(
-				Imgproc.MORPH_ELLIPSE, new Size(2, 2)));
-		Imgproc.erode(mTreshhold, mTreshhold, Imgproc.getStructuringElement(
-				Imgproc.MORPH_ELLIPSE, new Size(4, 4)));
+		// Imgproc.GaussianBlur(mTreshhold, mTreshhold, new Size(3, 3), 0);
+		// Imgproc.dilate(mTreshhold, mTreshhold, Imgproc.getStructuringElement(
+		// Imgproc.MORPH_ELLIPSE, new Size(2, 2)));
+		// Imgproc.erode(mTreshhold, mTreshhold, Imgproc.getStructuringElement(
+		// Imgproc.MORPH_ELLIPSE, new Size(4, 4)));
 
 		// Get Contours
 		List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
@@ -297,66 +297,58 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 		 * Finding of beacon contours
 		 */
 		// Start only when list is full and drawBeacons = true
-		if (drawBeacons && BeaconBounds.getBeaconBounds() != null
-				&& BeaconBounds.getBeaconBounds().size() >= 8) {
+		if (drawBeacons && BeaconBounds.getBeaconBounds() != null) {
 			// CALCULATE
-			for (BeaconBounds curBeaconBound : BeaconBounds.getBeaconBounds()) {
-				// start with next BeaconBound if delay is set
-				if (curBeaconBound.isDelay())
-					continue;
-
-				// get Beacon Bounds
-				ColorBounds lowerBounds = curBeaconBound.getLowerBound();
-				ColorBounds upperBounds = curBeaconBound.getUpperBound();
-
-				// get contours of lower bound
-				List<ContourExtremePoints> lowerContours;
-				List<ContourExtremePoints> upperContours;
-
-				lowerContours = getContoursByColor(lowerBounds.getLowerBound(),
-						lowerBounds.getUpperBound());
-
-				// if contours for lower are found,
-				// also search for contours of higher bound
-				// and only add to full BeaconContour if both are found
-				if (lowerContours.size() > 0) {
-					upperContours = getContoursByColor(
-							upperBounds.getLowerBound(),
-							upperBounds.getUpperBound());
-
-					// filter not possible contours
-					curBeaconBound.setContours(filterBeaconContours(
-							lowerContours, upperContours));
-
-					drawContours(curBeaconBound.getContours(), null,
-							new Scalar(0, 0, 0));
-				} else {
-					// Delay 50 frames before recomputation
-					curBeaconBound.startDelay(20);
-					curBeaconBound.setContours(null);
-				}
+			List<BeaconContour> contours = new ArrayList<BeaconContour>();
+			for (ColorBounds color : BeaconBounds.getColorsToFilter()) {
+				List<ContourExtremePoints> c = getContoursByColor(
+						color.getLowerBound(), color.getUpperBound());
+				contours.add(new BeaconContour(c, color));
 			}
+
+			for (BeaconBounds bound : BeaconBounds.getBeaconBounds()) {
+				bound.calculateContours(contours);
+				drawContours(bound.getContours(), null, bound.getLowerBound()
+						.getLowerBound(), 1);
+			}
+
 		}
 
-		/*
-		 * // Calculate distances from bottom center to every bottommost point
-		 * Point origin = new Point(mRgb.width() / 2, mRgb.height());
-		 * StringBuilder sb = new StringBuilder(); if (mHomography != null) {
-		 * for (int i = 0; i < objectContours.size(); i++) { Point
-		 * realWorldPoint = calculateHomographyPoint(objectContours
-		 * .get(i).getBottom());
-		 * 
-		 * double x = realWorldPoint.x - origin.x; double y = origin.y -
-		 * realWorldPoint.y;
-		 * 
-		 * sb.append("Object" + i + "-> x:" + Math.round(x) + "\ty: " +
-		 * Math.round(y) + "\n"); } } final String distances = sb.toString();
-		 * 
-		 * 
-		 * // Set text mStatusTextView.post(new Runnable() { public void run() {
-		 * mStatusTextView.setText("Tracking ON\nObjects Tracked: " +
-		 * mContours.size() + "\n" + distances); } });
-		 */
+		// Calculate distances from bottom center to every bottommost point
+		// Point origin = new Point(mRgb.width() / 2, mRgb.height()); //
+		// landscape
+		Point origin = new Point(mRgb.width(), mRgb.height()/2); // portrait
+
+		StringBuilder sb = new StringBuilder();
+
+		if (BeaconBounds.getBeaconBounds() != null) {
+			for (BeaconBounds b : BeaconBounds.getBeaconBounds()) {
+				if (b.getBottomPoint() == null)
+					continue;
+
+				Point realWorldPoint = calculateHomographyPoint(b
+						.getBottomPoint());
+
+				double y = origin.x - realWorldPoint.x;
+				double x = (origin.y - realWorldPoint.y);
+
+				double dist = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
+
+				sb.append(b.toString() + " :: x=" + Math.round(x) + " y="
+						+ Math.round(y) + " :: dist=" + dist + "\n");
+			}
+
+		}
+		// }
+		final String distances = sb.toString();
+
+		// Set text
+		mStatusTextView.post(new Runnable() {
+			public void run() {
+				mStatusTextView.setText("Tracking ON\nObjects Tracked: "
+						+ mContours.size() + "\n" + distances);
+			}
+		});
 
 		if (objectColorSelect) {
 			int size = 50;
@@ -382,8 +374,43 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 		return mRgb;
 	}
 
+	private Point calculateRobotPosition(Point p1, Point p2, Point origin) {
+		p1 = calculateHomographyPoint(p1);
+		p2 = calculateHomographyPoint(p2);
+
+		// Distance to Point p1
+		double x = p1.x - origin.x;
+		double y = origin.y - p1.y;
+		double dist1 = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
+
+		// Distance to Point p2
+		x = p2.x - origin.x;
+		y = origin.y - p2.y;
+		double dist2 = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
+
+		// Distance from p1 to p2
+		x = p1.x - p2.x;
+		y = p2.y - p1.y;
+		double distB = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
+
+		double beta1 = Math
+				.acos((Math.pow(distB, 2) + Math.pow(dist1, 2) - Math.pow(
+						dist2, 2) / (2.0 * distB * dist1)));
+		double beta2 = Math.abs(90.0 - beta1);
+
+		x = p1.x + (dist1 * (Math.sin(beta2)));
+		y = p1.y + (dist1 * (Math.sin(Math.abs(90.0 - beta2))));
+
+		return new Point(x, y);
+	}
+
 	private void drawContours(List<ContourExtremePoints> contours,
 			Scalar colorContour, Scalar colorRectangle) {
+		drawContours(contours, colorContour, colorRectangle, 1);
+	}
+
+	private void drawContours(List<ContourExtremePoints> contours,
+			Scalar colorContour, Scalar colorRectangle, int thickness) {
 		// draw Contour
 		for (ContourExtremePoints contourExtremePoint : contours) {
 			// Draw Contour
@@ -410,35 +437,10 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 						contourExtremePoint.getRight().y);
 				Point bottomLeft = new Point(contourExtremePoint.getBottom().x,
 						contourExtremePoint.getLeft().y);
-				Core.rectangle(mRgb, topRight, bottomLeft, colorRectangle);
+				Core.rectangle(mRgb, topRight, bottomLeft, colorRectangle,
+						thickness);
 			}
 		}
-	}
-
-	public List<ContourExtremePoints> filterBeaconContours(
-			List<ContourExtremePoints> lowerContours,
-			List<ContourExtremePoints> upperContours) {
-		List<ContourExtremePoints> filteredBeaconContours = new ArrayList<ContourExtremePoints>();
-		for (ContourExtremePoints lower : lowerContours) {
-			for (ContourExtremePoints upper : upperContours) {
-				// check overlap
-				if (lower.getLeft().y < upper.getRight().y
-						|| lower.getRight().y > upper.getLeft().y) {
-					// no overlap
-					continue;
-				}
-				if (lower.getTop().x > upper.getBottom().x
-						|| lower.getBottom().x < upper.getTop().x) {
-					// no overlap
-					continue;
-				}
-				// overlap
-				if (lower.getBottom().x > upper.getBottom().x) {
-					filteredBeaconContours.add(lower);
-				}
-			}
-		}
-		return filteredBeaconContours;
 	}
 
 	/**
@@ -470,7 +472,7 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 
 			return result;
 		} else {
-			return null;
+			return to;
 		}
 	}
 
@@ -508,9 +510,9 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 				Scalar mean = Core.mean(subMat);
 
 				// Set tolerances
-				float toleranceH = 7;
-				float toleranceS = 50;
-				float toleranceV = 52;
+				float toleranceH = 10;
+				float toleranceS = 40;
+				float toleranceV = 150;
 
 				Scalar lowerBound = new Scalar(mean.val[0] - toleranceH,
 						mean.val[1] - toleranceS, mean.val[2] - toleranceV);
@@ -519,12 +521,12 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 
 				objectColors.add(new ColorBounds(upperBound, lowerBound));
 
+				for (ColorBounds c : objectColors)
+					Log.i(TAG, "objectColors = " + c);
+
 				subMat.release();
 				mHsv.release();
 			} else if (beaconColorSelect) {
-				Log.i(TAG + "::Touch",
-						"beaconColors.size() = " + beaconColors.size());
-
 				// Convert img to HSV
 				Mat mHsv = new Mat();
 				Imgproc.cvtColor(mRgb, mHsv, Imgproc.COLOR_RGB2HSV_FULL);
@@ -536,9 +538,13 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 				Scalar mean = Core.mean(subMat);
 
 				// Set tolerances
-				float toleranceH = 7;
-				float toleranceS = 50;
-				float toleranceV = 52;
+				float toleranceH = 10;
+				float toleranceS = 40;
+				float toleranceV = 150;
+				// Set tolerances
+				// float toleranceH = 7;
+				// float toleranceS = 50;
+				// float toleranceV = 52;
 
 				Scalar lowerBound = new Scalar(mean.val[0] - toleranceH,
 						mean.val[1] - toleranceS, mean.val[2] - toleranceV);
@@ -550,25 +556,25 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 				subMat.release();
 				mHsv.release();
 
-				if (beaconColors.size() >= 16) {
+				if (beaconColors.size() >= 4) {
 					beaconColorSelect = false;
-					BeaconBounds.createBounds(beaconColors);
-					drawBeacons = true;
+					drawBeacons = BeaconBounds.createBounds(beaconColors);
 				} else {
 					// For each beacon 2 colors (8*2)
-					if (beaconColors.size() % 2 == 0) {
-						Toast.makeText(
-								this,
-								"Lower Color of "
-										+ ((beaconColors.size() / 2) + 1)
-										+ " Beacon", Toast.LENGTH_SHORT).show();
-					} else {
-						Toast.makeText(
-								this,
-								"Upper Color of "
-										+ ((beaconColors.size() / 2) + 1)
-										+ " Beacon", Toast.LENGTH_SHORT).show();
+					String s = "";
+					switch (beaconColors.size()) {
+					case 1:
+						s = "Yellow";
+						break;
+					case 2:
+						s = "Blue";
+						break;
+					case 3:
+						s = "White";
+						break;
 					}
+					Toast.makeText(this, s + " Color", Toast.LENGTH_SHORT)
+							.show();
 				}
 			}
 		}

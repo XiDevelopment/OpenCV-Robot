@@ -13,6 +13,8 @@ public class BeaconBounds {
 	private List<ContourExtremePoints> contours;
 	private int calculateDelay = 0;
 
+	private static final String TAG = "BeaconBounds::Class";
+
 	public void startDelay(int time) {
 		calculateDelay = time;
 	}
@@ -29,9 +31,14 @@ public class BeaconBounds {
 	private Point globalCoordinate;
 
 	static private List<BeaconBounds> beaconBounds;
+	static private List<ColorBounds> colorsToFilter;
 
 	static public List<BeaconBounds> getBeaconBounds() {
 		return beaconBounds;
+	}
+
+	static public List<ColorBounds> getColorsToFilter() {
+		return colorsToFilter;
 	}
 
 	static public void clearBeaconBounds() {
@@ -75,20 +82,43 @@ public class BeaconBounds {
 	public static boolean createBounds(List<ColorBounds> bounds) {
 		Log.i("BeaconBounds::Class", "Started createBounds!");
 		// must be 16 bounds, for 8 beacons
-		if (bounds.size() != 16) {
+		if (bounds.size() != 4) {
 			Log.e("BeaconBounds::Class",
 					"Error at createBounds, bounds.size() != 16");
 			return false;
 		}
 
-		List<BeaconBounds> list = new ArrayList<BeaconBounds>();
-		for (int i = 0; i < bounds.size(); i += 2) {
-			BeaconBounds newBound = new BeaconBounds(bounds.get(i),
-					bounds.get(i + 1), new Point(0, 0));
-			list.add(newBound);
-			Log.i("BeaconBounds::Class", newBound.toString());
-		}
-		beaconBounds = list;
+		for (ColorBounds b : bounds)
+			Log.i("BeaconBounds::Class", b.toString());
+
+		colorsToFilter = bounds;
+
+		/**
+		 * Creation of Beacons
+		 */
+		ColorBounds red = bounds.get(0);
+		ColorBounds yellow = bounds.get(1);
+		ColorBounds blue = bounds.get(2);
+		ColorBounds white = bounds.get(3);
+
+		beaconBounds = new ArrayList<BeaconBounds>();
+
+		BeaconBounds b0 = new BeaconBounds(blue, yellow, new Point(0, 0));
+		beaconBounds.add(b0);
+		BeaconBounds b1 = new BeaconBounds(blue, white, new Point(0, 75));
+		beaconBounds.add(b1);
+		BeaconBounds b2 = new BeaconBounds(yellow, blue, new Point(0, 150));
+		beaconBounds.add(b2);
+		BeaconBounds b3 = new BeaconBounds(red, blue, new Point(75, 150));
+		beaconBounds.add(b3);
+		BeaconBounds b4 = new BeaconBounds(yellow, red, new Point(150, 150));
+		beaconBounds.add(b4);
+		BeaconBounds b5 = new BeaconBounds(red, white, new Point(150, 75));
+		beaconBounds.add(b5);
+		BeaconBounds b6 = new BeaconBounds(red, yellow, new Point(150, 0));
+		beaconBounds.add(b6);
+		BeaconBounds b7 = new BeaconBounds(blue, red, new Point(75, 0));
+		beaconBounds.add(b7);
 
 		Log.i("BeaconBounds::Class", "Finished createBounds!");
 		return true;
@@ -105,9 +135,62 @@ public class BeaconBounds {
 			this.contours = contours;
 	}
 
+	public void calculateContours(List<BeaconContour> contours) {
+		List<ContourExtremePoints> lower = null;
+		List<ContourExtremePoints> upper = null;
+
+		for (BeaconContour b : contours) {
+			if (b.getColor() == this.lowerBound)
+				lower = b.getContours();
+			else if (b.getColor() == this.upperBound)
+				upper = b.getContours();
+		}
+
+		if (lower != null && upper != null)
+			this.contours = filterBeaconContours(lower, upper);
+		else
+			this.contours = null;
+	}
+
+	public Point getBottomPoint() {
+		Point p = null;
+
+		// TODO maybe more then one
+		for (ContourExtremePoints cp : this.contours) {
+			p = cp.getBottom();
+		}
+
+		return p;
+	}
+
+	public List<ContourExtremePoints> filterBeaconContours(
+			List<ContourExtremePoints> lowerContours,
+			List<ContourExtremePoints> upperContours) {
+		List<ContourExtremePoints> filteredBeaconContours = new ArrayList<ContourExtremePoints>();
+		for (ContourExtremePoints lower : lowerContours) {
+			for (ContourExtremePoints upper : upperContours) {
+				// check overlap
+				if (lower.getLeft().y < upper.getRight().y
+						|| lower.getRight().y > upper.getLeft().y) {
+					// no overlap
+					continue;
+				}
+				if (lower.getTop().x - 100 > upper.getBottom().x
+						|| lower.getBottom().x < upper.getTop().x) {
+					// no overlap
+					continue;
+				}
+				// overlap
+				if (lower.getBottom().x > upper.getBottom().x) {
+					filteredBeaconContours.add(lower);
+				}
+			}
+		}
+		return filteredBeaconContours;
+	}
+
 	@Override
 	public String toString() {
-		return "BeaconBound: L: " + lowerBound.toString() + " U:"
-				+ upperBound.toString() + " C:" + globalCoordinate.toString();
+		return "BeaconBound: " + globalCoordinate.toString();
 	}
 }
