@@ -105,19 +105,19 @@ public class BeaconBounds {
 
 		BeaconBounds b0 = new BeaconBounds(blue, yellow, new Point(0, 0));
 		beaconBounds.add(b0);
-		BeaconBounds b1 = new BeaconBounds(blue, white, new Point(0, 75));
+		BeaconBounds b1 = new BeaconBounds(blue, white, new Point(0, 750));
 		beaconBounds.add(b1);
-		BeaconBounds b2 = new BeaconBounds(yellow, blue, new Point(0, 150));
+		BeaconBounds b2 = new BeaconBounds(yellow, blue, new Point(0, 1500));
 		beaconBounds.add(b2);
-		BeaconBounds b3 = new BeaconBounds(red, blue, new Point(75, 150));
+		BeaconBounds b3 = new BeaconBounds(red, blue, new Point(750, 1500));
 		beaconBounds.add(b3);
-		BeaconBounds b4 = new BeaconBounds(yellow, red, new Point(150, 150));
+		BeaconBounds b4 = new BeaconBounds(yellow, red, new Point(1500, 1500));
 		beaconBounds.add(b4);
-		BeaconBounds b5 = new BeaconBounds(red, white, new Point(150, 75));
+		BeaconBounds b5 = new BeaconBounds(red, white, new Point(1500, 750));
 		beaconBounds.add(b5);
-		BeaconBounds b6 = new BeaconBounds(red, yellow, new Point(150, 0));
+		BeaconBounds b6 = new BeaconBounds(red, yellow, new Point(1500, 0));
 		beaconBounds.add(b6);
-		BeaconBounds b7 = new BeaconBounds(blue, red, new Point(75, 0));
+		BeaconBounds b7 = new BeaconBounds(blue, red, new Point(750, 0));
 		beaconBounds.add(b7);
 
 		Log.i("BeaconBounds::Class", "Finished createBounds!");

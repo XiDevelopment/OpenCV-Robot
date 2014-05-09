@@ -64,7 +64,7 @@ public class MoveFacade {
 	public void setContext(Context context) {
 		this.context = context;
 		basicMovement.SetContext(this.context);		
-		basicMovement.ledOn();
+		//basicMovement.ledOn();
 	}
 	
 	/**

@@ -1,6 +1,5 @@
 package at.int3ro.robot;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -13,18 +12,15 @@ import org.opencv.android.OpenCVLoader;
 import org.opencv.calib3d.Calib3d;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
-import org.opencv.core.MatOfInt;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
-import org.opencv.highgui.Highgui; // Exercise 1.1
 import org.opencv.imgproc.Imgproc;
 
 import android.app.Activity;
 import android.os.Bundle;
-import android.os.Environment;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -40,6 +36,9 @@ import at.int3ro.robot.model.BeaconBounds;
 import at.int3ro.robot.model.BeaconContour;
 import at.int3ro.robot.model.ColorBounds;
 import at.int3ro.robot.model.ContourExtremePoints;
+import at.int3ro.robot.model.RobotPosition;
+
+// Exercise 1.1
 
 public class RobotActivity extends Activity implements CvCameraViewListener2,
 		OnTouchListener {
@@ -48,7 +47,8 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 	private RobotCamera mOpenCvCameraView;
 	private TextView mStatusTextView;
 
-	private MenuItem mItemSavePicture = null;
+	private MenuItem mItemDrive = null;
+	private MenuItem mItemJustDrive = null;
 	private MenuItem mItemGetHomographyMatrix = null;
 	private MenuItem mItemObjectColor = null;
 	private MenuItem mItemAddBeaconColor = null;
@@ -68,6 +68,8 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 	private boolean beaconColorSelect = false;
 
 	private boolean drawBeacons = false;
+
+	private RobotPosition robotPosition = null;
 
 	Toast toast;
 
@@ -142,7 +144,8 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		Log.i(TAG, "called onCreateOptionsMenu");
-		mItemSavePicture = menu.add("Save Picture");
+		mItemDrive = menu.add("Drive");
+		mItemJustDrive = menu.add("Just Drive");
 		mItemGetHomographyMatrix = menu.add("Get Homography Matrix");
 		mItemObjectColor = menu.add("Object Color");
 		mItemAddBeaconColor = menu.add("add Beacon Color");
@@ -155,34 +158,15 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 	public boolean onOptionsItemSelected(MenuItem item) {
 		Log.i(TAG, "called onOptionsItemSelected; selected item: " + item);
 
-		if (item == mItemSavePicture) { // Exercise 1.1
-			String msg; // for Toast
-
-			// Set path to Pictures Directory on SD-Card
-			File path = Environment
-					.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
-			path.mkdirs(); // Create Directories if not present
-			File file = new File(path, "exercise1.jpeg"); // Create file
-			String filename = file.toString(); // Get Filename
-
-			// Set Image Quality
-			MatOfInt quality = new MatOfInt(Highgui.CV_IMWRITE_JPEG_QUALITY, 90);
-
-			// Write File
-			Mat mBgrTemp = new Mat(mRgb.height(), mRgb.width(), mRgb.type());
-			// Convert RGB to BGR
-			Imgproc.cvtColor(mRgb, mBgrTemp, Imgproc.COLOR_RGB2BGR);
-			if (Highgui.imwrite(filename, mBgrTemp, quality)) {
-				msg = "Image saved!";
-				Log.i(TAG, "Image saved!");
-			} else {
-				msg = "Error while saving!";
-				Log.e(TAG, "Error while saving!");
+		if (item == mItemDrive) { // Exercise 1.1
+			if (robotPosition != null && robotPosition.getCoords() != null) {
+				Toast.makeText(this, "Driving!", Toast.LENGTH_SHORT).show();
+				MoveFacade.getInstance().move(robotPosition.getCoords(),
+						robotPosition.getAngle(), new Point(0, 0));
 			}
-
-			// Show Toast
-			Toast toast = Toast.makeText(this, msg, Toast.LENGTH_LONG);
-			toast.show();
+		} else if (item == mItemJustDrive) {
+			MoveFacade.getInstance().move(50);
+			Toast.makeText(this, "Driving!", Toast.LENGTH_SHORT).show();
 		} else if (item == mItemGetHomographyMatrix) {
 			if (mHomography != null)
 				mHomography.release();
@@ -314,11 +298,9 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 
 		}
 
-		// Calculate distances from bottom center to every bottommost point
-		// Point origin = new Point(mRgb.width() / 2, mRgb.height()); //
-		// landscape
-		Point origin = new Point(mRgb.width(), mRgb.height()/2); // portrait
-
+		/**
+		 * Calculate Positions
+		 */
 		StringBuilder sb = new StringBuilder();
 
 		if (BeaconBounds.getBeaconBounds() != null) {
@@ -329,15 +311,37 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 				Point realWorldPoint = calculateHomographyPoint(b
 						.getBottomPoint());
 
-				double y = origin.x - realWorldPoint.x;
-				double x = (origin.y - realWorldPoint.y);
+				if (realWorldPoint == null) {
+					sb.append(b.toString() + " visible\n");
+				} else {
+					// double y = origin.x - realWorldPoint.x;
+					// double x = (origin.y - realWorldPoint.y);
+					double y = realWorldPoint.y;
+					double x = realWorldPoint.x;
 
-				double dist = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
+					double dist = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
 
-				sb.append(b.toString() + " :: x=" + Math.round(x) + " y="
-						+ Math.round(y) + " :: dist=" + dist + "\n");
+					sb.append(b.toString() + " :: x=" + Math.round(x) + " y="
+							+ Math.round(y) + " :: dist=" + dist + "\n");
+				}
 			}
 
+			/**
+			 * Calculate robot world position
+			 */
+			List<BeaconBounds> visibleBounds = new ArrayList<BeaconBounds>();
+			for (BeaconBounds b : BeaconBounds.getBeaconBounds())
+				if (b.getBottomPoint() != null)
+					visibleBounds.add(b);
+
+			if (visibleBounds.size() >= 2) {
+				robotPosition = calculateRobotPosition(visibleBounds.get(0),
+						visibleBounds.get(1));
+			}
+			if (robotPosition != null)
+				sb.append("ROBOT POSITION="
+						+ robotPosition.getCoords().toString() + "  ANGLE="
+						+ robotPosition.getAngle() + "\n");
 		}
 		// }
 		final String distances = sb.toString();
@@ -359,49 +363,126 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 			Core.rectangle(mRgb, topLeft, bottomRight, new Scalar(0, 255, 255),
 					5);
 		} else if (beaconColorSelect) {
-			Scalar color1 = new Scalar(255, 0, 0);
-			Scalar color2 = new Scalar(0, 255, 0);
+			Scalar color;
+			switch (beaconColors.size()) {
+			case 1:
+				color = new Scalar(255, 255, 0);
+				break;
+			case 2:
+				color = new Scalar(0, 0, 255);
+				break;
+			case 3:
+				color = new Scalar(255, 255, 255);
+				break;
+			default:
+				color = new Scalar(255, 0, 0);
+				break;
+			}
 
 			int size = 50;
 			Point topLeft = new Point(mRgb.width() / 2 - size, mRgb.height()
 					/ 2 - size);
 			Point bottomRight = new Point(mRgb.width() / 2 + size,
 					mRgb.height() / 2 + size);
-			Core.rectangle(mRgb, topLeft, bottomRight,
-					((beaconColors.size() % 2 == 0) ? color1 : color2), 5);
+			Core.rectangle(mRgb, topLeft, bottomRight, color, 5);
 		}
 
 		return mRgb;
 	}
 
-	private Point calculateRobotPosition(Point p1, Point p2, Point origin) {
-		p1 = calculateHomographyPoint(p1);
-		p2 = calculateHomographyPoint(p2);
+	private RobotPosition calculateRobotPosition(BeaconBounds b1,
+			BeaconBounds b2) {
 
-		// Distance to Point p1
-		double x = p1.x - origin.x;
-		double y = origin.y - p1.y;
-		double dist1 = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
+		if (b1 == null || b2 == null)
+			return null;
 
-		// Distance to Point p2
-		x = p2.x - origin.x;
-		y = origin.y - p2.y;
-		double dist2 = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
+		Point p1 = calculateHomographyPoint(b1.getBottomPoint());
+		Point p2 = calculateHomographyPoint(b2.getBottomPoint());
 
-		// Distance from p1 to p2
-		x = p1.x - p2.x;
-		y = p2.y - p1.y;
-		double distB = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
+		if (p1 == null || p2 == null)
+			return null;
+
+		// Distance to beacons
+		double dist1 = Math.sqrt(Math.pow(p1.x, 2) + Math.pow(p1.y, 2));
+		double dist2 = Math.sqrt(Math.pow(p2.x, 2) + Math.pow(p2.y, 2));
+
+		// Distance between beacons
+		double x = b2.getGlobalCoordinate().x - b1.getGlobalCoordinate().x;
+		double y = b2.getGlobalCoordinate().y - b1.getGlobalCoordinate().y;
+		double dist3 = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
 
 		double beta1 = Math
-				.acos((Math.pow(distB, 2) + Math.pow(dist1, 2) - Math.pow(
-						dist2, 2) / (2.0 * distB * dist1)));
-		double beta2 = Math.abs(90.0 - beta1);
+				.acos((Math.pow(dist3, 2) + Math.pow(dist1, 2) - Math.pow(
+						dist2, 2)) / (2.0 * dist3 * dist1));
+		double gamma = Math
+				.acos((Math.pow(dist3, 2) + Math.pow(dist2, 2) - Math.pow(
+						dist1, 2)) / (2.0 * dist3 * dist2));
+		double beta2 = Math.PI / 2 - beta1;
+
+		int rot = 1;
+		if (beta2 < 0) {
+			beta2 = Math.abs(beta2);
+			rot = -1;
+		}
 
 		x = p1.x + (dist1 * (Math.sin(beta2)));
-		y = p1.y + (dist1 * (Math.sin(Math.abs(90.0 - beta2))));
+		// y = p1.y + (dist1 * (Math.sin(Math.abs(Math.PI / 2 - beta2))));
+		y = Math.sqrt(Math.pow(dist1, 2) - Math.pow(x, 2));
 
-		return new Point(x, y);
+		Point result = new Point();
+
+		// 1
+
+		Log.i("calculateRobotPosition",
+				"b1globalC=" + b1.getGlobalCoordinate().x + "  b2globalC="
+						+ b2.getGlobalCoordinate().x + "   x=" + x);
+		if (b1.getGlobalCoordinate().x == 0)
+			result.x = b1.getGlobalCoordinate().x + x;
+		else if (b1.getGlobalCoordinate().x == 1500)
+			result.x = b1.getGlobalCoordinate().x - x;
+		else if (b2.getGlobalCoordinate().x == 1500)
+			result.x = b1.getGlobalCoordinate().x - (rot * x);
+		else if (b2.getGlobalCoordinate().x == 0)
+			result.x = b1.getGlobalCoordinate().x + (rot * x);
+
+		// 2
+		if (b1.getGlobalCoordinate().y == 0)
+			result.y = b1.getGlobalCoordinate().y + y;
+		else if (b1.getGlobalCoordinate().y == 1500)
+			result.y = b1.getGlobalCoordinate().y - y;
+		else if (b2.getGlobalCoordinate().y == 0)
+			result.y = b1.getGlobalCoordinate().y + y;
+		else if (b2.getGlobalCoordinate().y == 1500)
+			result.y = b1.getGlobalCoordinate().y - y;
+
+		// 3
+		if ((b1.getGlobalCoordinate().x == 1500 && b2.getGlobalCoordinate().x == 1500)
+				|| (b1.getGlobalCoordinate().x == 0 && b2.getGlobalCoordinate().x == 0)) {
+			double temp = result.x;
+			result.x = result.y;
+			result.y = temp;
+		}
+
+		/**
+		 * Calculation of Angle
+		 */
+		double angle = 0;
+
+		// Log Positions
+		Log.i("calculateRobotPosition", "dist1 = " + dist1);
+		Log.i("calculateRobotPosition", "dist2 = " + dist2);
+		Log.i("calculateRobotPosition", "dist3 = " + dist3);
+		Log.i("calculateRobotPosition", "beta1 = " + beta1);
+		Log.i("calculateRobotPosition", "beta2 = " + beta2);
+		Log.i("calculateRobotPosition", "x = " + x);
+		Log.i("calculateRobotPosition", "y = " + y);
+		Log.i("calculateRobotPosition", "b1 = " + b1.getGlobalCoordinate());
+		Log.i("calculateRobotPosition", "b2 = " + b2.getGlobalCoordinate());
+		Log.i("calculateRobotPosition", "Result = " + result.toString());
+
+		RobotPosition position = new RobotPosition(result, angle);
+
+		return position;
 	}
 
 	private void drawContours(List<ContourExtremePoints> contours,
@@ -452,7 +533,7 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 	 *            Homography Matrix
 	 * @return real world point or null if no homography is set
 	 */
-	public Point calculateHomographyPoint(Point to, Mat homography) {
+	private Point calculateHomographyPoint(Point to, Mat homography) {
 		if (homography != null) {
 			// temporary mats
 			Mat mTo = new MatOfPoint2f(to);
@@ -463,8 +544,8 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 
 			// get point from Mat
 			Point result = new Point();
-			result.x = mTo.get(0, 0)[0];
-			result.y = mTo.get(0, 0)[1];
+			result.x = mResult.get(0, 0)[0];
+			result.y = mResult.get(0, 0)[1];
 
 			// release temporary
 			mTo.release();
@@ -472,7 +553,7 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 
 			return result;
 		} else {
-			return to;
+			return null;
 		}
 	}
 
@@ -483,7 +564,7 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 	 *            Point to transform
 	 * @return real world point or null if no homography is set
 	 */
-	public Point calculateHomographyPoint(Point to) {
+	private Point calculateHomographyPoint(Point to) {
 		return calculateHomographyPoint(to, mHomography);
 	}
 
