@@ -31,6 +31,7 @@ import android.view.View.OnTouchListener;
 import android.view.WindowManager;
 import android.widget.TextView;
 import android.widget.Toast;
+import at.int3ro.robot.controller.BasicMovement;
 import at.int3ro.robot.controller.MoveFacade;
 import at.int3ro.robot.model.BeaconBounds;
 import at.int3ro.robot.model.BeaconContour;
@@ -162,10 +163,12 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 			if (robotPosition != null && robotPosition.getCoords() != null) {
 				Toast.makeText(this, "Driving!", Toast.LENGTH_SHORT).show();
 				MoveFacade.getInstance().move(robotPosition.getCoords(),
-						robotPosition.getAngle(), new Point(0, 0));
+						robotPosition.getAngle(), new Point(500, 500));
+
 			}
 		} else if (item == mItemJustDrive) {
-			MoveFacade.getInstance().move(50);
+			MoveFacade.getInstance().move(10);
+			MoveFacade.getInstance().turnInPlace(90.0);
 			Toast.makeText(this, "Driving!", Toast.LENGTH_SHORT).show();
 		} else if (item == mItemGetHomographyMatrix) {
 			if (mHomography != null)
@@ -203,7 +206,7 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 			mHomography.release();
 	}
 
-	public List<ContourExtremePoints> getContoursByColor(Scalar lowerBound,
+	private List<ContourExtremePoints> getContoursByColor(Scalar lowerBound,
 			Scalar upperBound) {
 		Imgproc.cvtColor(mRgb, mTreshhold, Imgproc.COLOR_RGB2HSV_FULL);
 
@@ -215,11 +218,11 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 		Core.inRange(mTreshhold, lowerBound, upperBound, mTreshhold);
 
 		// Apply Filters
-		// Imgproc.GaussianBlur(mTreshhold, mTreshhold, new Size(3, 3), 0);
-		// Imgproc.dilate(mTreshhold, mTreshhold, Imgproc.getStructuringElement(
-		// Imgproc.MORPH_ELLIPSE, new Size(2, 2)));
-		// Imgproc.erode(mTreshhold, mTreshhold, Imgproc.getStructuringElement(
-		// Imgproc.MORPH_ELLIPSE, new Size(4, 4)));
+		Imgproc.GaussianBlur(mTreshhold, mTreshhold, new Size(3, 3), 0);
+		Imgproc.dilate(mTreshhold, mTreshhold, Imgproc.getStructuringElement(
+				Imgproc.MORPH_ELLIPSE, new Size(2, 2)));
+		Imgproc.erode(mTreshhold, mTreshhold, Imgproc.getStructuringElement(
+				Imgproc.MORPH_ELLIPSE, new Size(4, 4)));
 
 		// Get Contours
 		List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
@@ -239,7 +242,7 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 		// Filter contours by area and resize to fit the original image size
 		mContours.clear();
 		for (MatOfPoint contour : contours) {
-			if (Imgproc.contourArea(contour) > 0.5 * maxArea) {
+			if (Imgproc.contourArea(contour) > 0.25 * maxArea) {
 				// undo PyrDown
 				Core.multiply(contour, new Scalar(4, 4), contour);
 				mContours.add(contour);
@@ -288,12 +291,14 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 				List<ContourExtremePoints> c = getContoursByColor(
 						color.getLowerBound(), color.getUpperBound());
 				contours.add(new BeaconContour(c, color));
+				drawContours(c, new Scalar(255, 255, 255),
+						color.getUpperBound(), 2);
 			}
 
 			for (BeaconBounds bound : BeaconBounds.getBeaconBounds()) {
 				bound.calculateContours(contours);
-				drawContours(bound.getContours(), null, bound.getLowerBound()
-						.getLowerBound(), 1);
+				// drawContours(bound.getContours(), null, bound.getLowerBound()
+				// .getLowerBound(), 1);
 			}
 
 		}
@@ -334,10 +339,27 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 				if (b.getBottomPoint() != null)
 					visibleBounds.add(b);
 
-			if (visibleBounds.size() >= 2) {
-				robotPosition = calculateRobotPosition(visibleBounds.get(0),
-						visibleBounds.get(1));
+			// Filter out bounds which are too close together
+			double maxD = 0;
+			int indexA = -1, indexB = -1;
+			for (int i = 0; i < visibleBounds.size(); i++) {
+				for (int j = 0; j < visibleBounds.size(); j++) {
+					double dist = Math.abs(visibleBounds.get(i)
+							.getBottomPoint().x)
+							+ Math.abs(visibleBounds.get(j).getBottomPoint().x);
+					if (i != j && dist > maxD) {
+						maxD = dist;
+						indexA = i;
+						indexB = j;
+					}
+				}
 			}
+
+			if (visibleBounds.size() >= 2 && indexA >= 0 && indexB >= 0) {
+				robotPosition = calculateRobotPosition(
+						visibleBounds.get(indexA), visibleBounds.get(indexB));
+			}
+
 			if (robotPosition != null)
 				sb.append("ROBOT POSITION="
 						+ robotPosition.getCoords().toString() + "  ANGLE="
@@ -414,9 +436,9 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 		double beta1 = Math
 				.acos((Math.pow(dist3, 2) + Math.pow(dist1, 2) - Math.pow(
 						dist2, 2)) / (2.0 * dist3 * dist1));
-		double gamma = Math
-				.acos((Math.pow(dist3, 2) + Math.pow(dist2, 2) - Math.pow(
-						dist1, 2)) / (2.0 * dist3 * dist2));
+		// double gamma = Math
+		// .acos((Math.pow(dist3, 2) + Math.pow(dist2, 2) - Math.pow(
+		// dist1, 2)) / (2.0 * dist3 * dist2));
 		double beta2 = Math.PI / 2 - beta1;
 
 		int rot = 1;
@@ -424,15 +446,12 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 			beta2 = Math.abs(beta2);
 			rot = -1;
 		}
-
-		x = p1.x + (dist1 * (Math.sin(beta2)));
-		// y = p1.y + (dist1 * (Math.sin(Math.abs(Math.PI / 2 - beta2))));
-		y = Math.sqrt(Math.pow(dist1, 2) - Math.pow(x, 2));
+		
+		x = dist1 * Math.sin(beta2);
+		y = dist1 * Math.cos(beta2);
 
 		Point result = new Point();
-
 		// 1
-
 		Log.i("calculateRobotPosition",
 				"b1globalC=" + b1.getGlobalCoordinate().x + "  b2globalC="
 						+ b2.getGlobalCoordinate().x + "   x=" + x);
@@ -440,10 +459,10 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 			result.x = b1.getGlobalCoordinate().x + x;
 		else if (b1.getGlobalCoordinate().x == 1500)
 			result.x = b1.getGlobalCoordinate().x - x;
-		else if (b2.getGlobalCoordinate().x == 1500)
-			result.x = b1.getGlobalCoordinate().x - (rot * x);
 		else if (b2.getGlobalCoordinate().x == 0)
 			result.x = b1.getGlobalCoordinate().x + (rot * x);
+		else if (b2.getGlobalCoordinate().x == 1500)
+			result.x = b1.getGlobalCoordinate().x - (rot * x);
 
 		// 2
 		if (b1.getGlobalCoordinate().y == 0)
@@ -451,9 +470,9 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 		else if (b1.getGlobalCoordinate().y == 1500)
 			result.y = b1.getGlobalCoordinate().y - y;
 		else if (b2.getGlobalCoordinate().y == 0)
-			result.y = b1.getGlobalCoordinate().y + y;
+			result.y = b1.getGlobalCoordinate().y + (rot * y);
 		else if (b2.getGlobalCoordinate().y == 1500)
-			result.y = b1.getGlobalCoordinate().y - y;
+			result.y = b1.getGlobalCoordinate().y - (rot * y);
 
 		// 3
 		if ((b1.getGlobalCoordinate().x == 1500 && b2.getGlobalCoordinate().x == 1500)
@@ -466,7 +485,7 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 		/**
 		 * Calculation of Angle
 		 */
-		double angle = 0;
+		double angle = 270.0;
 
 		// Log Positions
 		Log.i("calculateRobotPosition", "dist1 = " + dist1);
@@ -592,8 +611,8 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 
 				// Set tolerances
 				float toleranceH = 10;
-				float toleranceS = 40;
-				float toleranceV = 150;
+				float toleranceS = 50;
+				float toleranceV = 100;
 
 				Scalar lowerBound = new Scalar(mean.val[0] - toleranceH,
 						mean.val[1] - toleranceS, mean.val[2] - toleranceV);
@@ -619,8 +638,8 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 				Scalar mean = Core.mean(subMat);
 
 				// Set tolerances
-				float toleranceH = 10;
-				float toleranceS = 40;
+				float toleranceH = 7;
+				float toleranceS = 50;
 				float toleranceV = 150;
 				// Set tolerances
 				// float toleranceH = 7;

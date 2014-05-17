@@ -166,6 +166,12 @@ public class BeaconBounds {
 	public List<ContourExtremePoints> filterBeaconContours(
 			List<ContourExtremePoints> lowerContours,
 			List<ContourExtremePoints> upperContours) {
+		return filterBeaconContours(lowerContours, upperContours, 50);
+	}
+
+	public List<ContourExtremePoints> filterBeaconContours(
+			List<ContourExtremePoints> lowerContours,
+			List<ContourExtremePoints> upperContours, int toleranceY) {
 		List<ContourExtremePoints> filteredBeaconContours = new ArrayList<ContourExtremePoints>();
 		for (ContourExtremePoints lower : lowerContours) {
 			for (ContourExtremePoints upper : upperContours) {
@@ -175,7 +181,7 @@ public class BeaconBounds {
 					// no overlap
 					continue;
 				}
-				if (lower.getTop().x - 100 > upper.getBottom().x
+				if (lower.getTop().x - toleranceY > upper.getBottom().x
 						|| lower.getBottom().x < upper.getTop().x) {
 					// no overlap
 					continue;

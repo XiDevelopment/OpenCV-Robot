@@ -93,6 +93,10 @@ public class MoveFacade {
 	 * @param toPos target position
 	 */
 	public void move(Point curPos, double curAngle, Point toPos) {
+		Log.i(TAG, "Current: " + curPos.toString());
+		Log.i(TAG, "Target: " + toPos.toString());
+		Log.i(TAG, "Angle: " + curAngle);
+		
 		//set new points for angle calculations
 		Point viewOrigin = new Point(10.0, 0.0);
 		Point targetPos = new Point(toPos.x - curPos.x, toPos.y - curPos.y);
@@ -105,7 +109,7 @@ public class MoveFacade {
 						(viewOrigin.x*targetPos.x+viewOrigin.y*targetPos.y) /
 						(10.0*distancePos)));
 		
-//		Log.d(TAG, " " + targetAngle);
+		Log.i(TAG, "Target Angle: " + targetAngle);
 		
 		//check y coordinate if the target pos is in the lower quadrants
 		//and then convert it to an angle greater than 180
@@ -123,10 +127,12 @@ public class MoveFacade {
 			rotateAngle -= 360.0;
 		else if(rotateAngle < -180.0)
 			rotateAngle += 360.0;
-		turn(rotateAngle);
-		Log.d(TAG, "rotate: " + rotateAngle);
-		
-		move(distancePos);
+
+		Log.i(TAG, "Rotate1: " + rotateAngle);
+		turnInPlace(rotateAngle);
+		Log.i(TAG, "Rotate2: " + rotateAngle);
+		Log.i(TAG, "Distance: " + distancePos/10);
+		move(distancePos/10);
 	}
 	
 	/**
@@ -176,6 +182,25 @@ public class MoveFacade {
 					basicMovement.stop();
 				}
 			} 
+		});
+	}
+	
+	public void turnInPlace(final double angle) {
+		threadQueue.add(new Thread() {
+			@Override
+			public void run() {
+				if(angle < 0 )
+					basicMovement.turnPosRight();
+				else 
+					basicMovement.turnPosLeft();
+				
+				try {
+					Thread.sleep((long) (Math.abs(angle)/171*1000.0));
+				} catch (Exception e) {}
+				finally {
+					basicMovement.stop();
+				}
+			}
 		});
 	}
 	

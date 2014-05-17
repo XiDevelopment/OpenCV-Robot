@@ -127,7 +127,15 @@ public class BasicMovement {
 	public void turnRight() {
 		comReadWrite(new byte[] { 'd', '\r', '\n' });
 	}
+	
+	public void turnPosLeft() {
+		robotSetVelocity((byte) -30, (byte) 30);
+	}
 
+	public void turnPosRight() {
+		robotSetVelocity((byte) 30, (byte) -30);
+	}
+	
 	// move backward
 	public void moveBackward() {
 		// logText(comReadWrite(new byte[] { 'x', '\r', '\n' }));
