@@ -27,4 +27,9 @@ public class RobotPosition {
 		this.coords = coords;
 		this.angle = angle;
 	}
+
+	@Override
+	public String toString() {
+		return "(" + coords + " " + angle + ")";
+	}
 }

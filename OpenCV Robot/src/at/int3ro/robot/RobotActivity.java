@@ -34,6 +34,7 @@ import android.view.WindowManager;
 import android.widget.TextView;
 import android.widget.Toast;
 import at.int3ro.robot.controller.MoveFacade;
+import at.int3ro.robot.controller.PositionController;
 import at.int3ro.robot.model.BeaconBounds;
 import at.int3ro.robot.model.BeaconContour;
 import at.int3ro.robot.model.ColorBounds;
@@ -369,7 +370,7 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 				}
 			}
 
-			if (visibleBounds.size() >= 2 && indexA >= 0 && indexB >= 0) {
+			if (visibleBounds.size() >= 2 && in  dexA >= 0 && indexB >= 0) {
 				robotPosition = calculateRobotPosition(
 						visibleBounds.get(indexA), visibleBounds.get(indexB));
 			}
@@ -499,22 +500,24 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 		/**
 		 * Calculation of Angle
 		 */
-		double angle = 270.0;
+		double angle = PositionController.getAngle(p1.y, b1, result.x, result.y);
 
-		// Log Positions
-		Log.i("calculateRobotPosition", "dist1 = " + dist1);
-		Log.i("calculateRobotPosition", "dist2 = " + dist2);
-		Log.i("calculateRobotPosition", "dist3 = " + dist3);
-		Log.i("calculateRobotPosition", "beta1 = " + beta1);
-		Log.i("calculateRobotPosition", "beta2 = " + beta2);
-		Log.i("calculateRobotPosition", "x = " + x);
-		Log.i("calculateRobotPosition", "y = " + y);
-		Log.i("calculateRobotPosition", "b1 = " + b1.getGlobalCoordinate());
-		Log.i("calculateRobotPosition", "b2 = " + b2.getGlobalCoordinate());
-		Log.i("calculateRobotPosition", "Result = " + result.toString());
+		// // Log Positions
+		// Log.i("calculateRobotPosition", "dist1 = " + dist1);
+		// Log.i("calculateRobotPosition", "dist2 = " + dist2);
+		// Log.i("calculateRobotPosition", "dist3 = " + dist3);
+		// Log.i("calculateRobotPosition", "beta1 = " + beta1);
+		// Log.i("calculateRobotPosition", "beta2 = " + beta2);
+		// Log.i("calculateRobotPosition", "x = " + x);
+		// Log.i("calculateRobotPosition", "y = " + y);
+		// Log.i("calculateRobotPosition", "b1 = " + b1.getGlobalCoordinate());
+		// Log.i("calculateRobotPosition", "b2 = " + b2.getGlobalCoordinate());
+		// Log.i("calculateRobotPosition", "Result = " + result.toString());
 
 		RobotPosition position = new RobotPosition(result, angle);
-
+		
+		Log.i("calculateRobotPosition", "Result = " + position.toString());
+			
 		return position;
 	}
 
