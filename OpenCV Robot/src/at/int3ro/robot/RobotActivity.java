@@ -11,6 +11,7 @@ import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.calib3d.Calib3d;
 import org.opencv.core.Core;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.MatOfPoint2f;
@@ -20,6 +21,7 @@ import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
 import android.app.Activity;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -31,7 +33,6 @@ import android.view.View.OnTouchListener;
 import android.view.WindowManager;
 import android.widget.TextView;
 import android.widget.Toast;
-import at.int3ro.robot.controller.BasicMovement;
 import at.int3ro.robot.controller.MoveFacade;
 import at.int3ro.robot.model.BeaconBounds;
 import at.int3ro.robot.model.BeaconContour;
@@ -54,6 +55,7 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 	private MenuItem mItemObjectColor = null;
 	private MenuItem mItemAddBeaconColor = null;
 	private MenuItem mItemClearBeaconColor = null;
+	private MenuItem mItemCameraCorrections = null;
 
 	private Mat mRgb;
 	private Mat mTreshhold;
@@ -151,6 +153,7 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 		mItemObjectColor = menu.add("Object Color");
 		mItemAddBeaconColor = menu.add("add Beacon Color");
 		mItemClearBeaconColor = menu.add("clear Beacon Colors");
+		mItemCameraCorrections = menu.add("Camera Corrections toggle");
 
 		return true;
 	}
@@ -186,6 +189,16 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 			beaconColors.clear();
 			beaconColorSelect = false;
 			drawBeacons = false;
+		} else if (item == mItemCameraCorrections) {
+			if (mOpenCvCameraView.getCameraOptimizationsOff()) {
+				mOpenCvCameraView.setCameraOptimizationsOff(false);
+				Toast.makeText(this, "Camera Auto Corrections are on",
+						Toast.LENGTH_SHORT).show();
+			} else {
+				mOpenCvCameraView.setCameraOptimizationsOff(true);
+				Toast.makeText(this, "Camera Auto Corrections are off",
+						Toast.LENGTH_SHORT).show();
+			}
 		}
 
 		return true;
@@ -195,6 +208,7 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 		mRgb = new Mat();
 		mTreshhold = new Mat();
 		mContours = new ArrayList<MatOfPoint>();
+		mOpenCvCameraView.setCameraOptimizationsOff(true);
 	}
 
 	public void onCameraViewStopped() {
@@ -292,9 +306,9 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 						color.getLowerBound(), color.getUpperBound());
 				contours.add(new BeaconContour(c, color));
 				drawContours(c, new Scalar(255, 255, 255),
-						color.getUpperBound(), 2);
+						color.getColor(), 2);
 			}
-
+			
 			for (BeaconBounds bound : BeaconBounds.getBeaconBounds()) {
 				bound.calculateContours(contours);
 				// drawContours(bound.getContours(), null, bound.getLowerBound()
@@ -446,7 +460,7 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 			beta2 = Math.abs(beta2);
 			rot = -1;
 		}
-		
+
 		x = dist1 * Math.sin(beta2);
 		y = dist1 * Math.cos(beta2);
 
@@ -607,19 +621,9 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 						mHsv.height() / 2 + 40, mHsv.width() / 2 - 40,
 						mHsv.width() / 2 + 40);
 
-				Scalar mean = Core.mean(subMat);
+				Scalar color = Core.mean(subMat);
 
-				// Set tolerances
-				float toleranceH = 10;
-				float toleranceS = 50;
-				float toleranceV = 100;
-
-				Scalar lowerBound = new Scalar(mean.val[0] - toleranceH,
-						mean.val[1] - toleranceS, mean.val[2] - toleranceV);
-				Scalar upperBound = new Scalar(mean.val[0] + toleranceH,
-						mean.val[1] + toleranceS, mean.val[2] + toleranceV);
-
-				objectColors.add(new ColorBounds(upperBound, lowerBound));
+				objectColors.add(new ColorBounds(color));
 
 				for (ColorBounds c : objectColors)
 					Log.i(TAG, "objectColors = " + c);
@@ -635,23 +639,9 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 						mHsv.height() / 2 + 40, mHsv.width() / 2 - 40,
 						mHsv.width() / 2 + 40);
 
-				Scalar mean = Core.mean(subMat);
+				Scalar color = Core.mean(subMat);
 
-				// Set tolerances
-				float toleranceH = 7;
-				float toleranceS = 50;
-				float toleranceV = 150;
-				// Set tolerances
-				// float toleranceH = 7;
-				// float toleranceS = 50;
-				// float toleranceV = 52;
-
-				Scalar lowerBound = new Scalar(mean.val[0] - toleranceH,
-						mean.val[1] - toleranceS, mean.val[2] - toleranceV);
-				Scalar upperBound = new Scalar(mean.val[0] + toleranceH,
-						mean.val[1] + toleranceS, mean.val[2] + toleranceV);
-
-				beaconColors.add(new ColorBounds(upperBound, lowerBound));
+				beaconColors.add(new ColorBounds(color));
 
 				subMat.release();
 				mHsv.release();
@@ -679,6 +669,43 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 			}
 		}
 		return true;
+	}
+
+	public void onButtonThreshold(View view) {
+		Log.i(TAG, "OnButtonThreshold called!");
+
+		int h = 0, s = 0, v = 0;
+
+		switch (view.getId()) {
+		case R.id.btn_h_plus:
+			h = 1;
+			break;
+		case R.id.btn_h_minus:
+			h = -1;
+			break;
+		case R.id.btn_s_plus:
+			s = 5;
+			break;
+		case R.id.btn_s_minus:
+			s = -5;
+			break;
+		case R.id.btn_v_plus:
+			v = 5;
+			break;
+		case R.id.btn_v_minus:
+			v = -5;
+			break;
+		}
+
+		if (objectColors != null)
+			for (ColorBounds c : objectColors)
+				c.setThreshold(new Scalar(c.getThreshold().val[0] + h, c
+						.getThreshold().val[1] + s, c.getThreshold().val[2] + v));
+
+		if (BeaconBounds.getColorsToFilter() != null)
+			for (ColorBounds c : BeaconBounds.getColorsToFilter())
+				c.setThreshold(new Scalar(c.getThreshold().val[0] + h, c
+						.getThreshold().val[1] + s, c.getThreshold().val[2] + v));
 	}
 
 	public Mat getHomographyMatrix(Mat mRgba) {
