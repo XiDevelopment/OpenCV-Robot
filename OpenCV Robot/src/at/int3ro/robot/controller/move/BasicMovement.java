@@ -1,12 +1,14 @@
-package at.int3ro.robot.controller;
+package at.int3ro.robot.controller.move;
 
 import jp.ksksue.driver.serial.FTDriver;
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.hardware.usb.UsbManager;
-import android.text.InputFilter.LengthFilter;
+import android.os.Build;
 import android.widget.TextView;
 import android.widget.Toast;
 
+@TargetApi(Build.VERSION_CODES.HONEYCOMB_MR1)
 public class BasicMovement {
 	private static BasicMovement instance = null;
 
@@ -18,6 +20,7 @@ public class BasicMovement {
 
 	@SuppressWarnings("unused")
 	private String TAG = "iRobot";
+	@SuppressWarnings("unused")
 	private TextView textLog;
 	private FTDriver com = null;
 
@@ -87,13 +90,16 @@ public class BasicMovement {
 	 * @return answer from serial interface
 	 */
 	public String comReadWrite(byte[] data) {
-		com.write(data);
-		try {
-			Thread.sleep(100);
-		} catch (InterruptedException e) {
-			// ignore
-		}
-		return comRead();
+		if (com != null) {
+			com.write(data);
+			try {
+				Thread.sleep(100);
+			} catch (InterruptedException e) {
+				// ignore
+			}
+			return comRead();
+		} else
+			return null;
 	}
 
 	public void robotSetLeds(byte red, byte blue) {
@@ -127,7 +133,7 @@ public class BasicMovement {
 	public void turnRight() {
 		comReadWrite(new byte[] { 'd', '\r', '\n' });
 	}
-	
+
 	public void turnPosLeft() {
 		robotSetVelocity((byte) -30, (byte) 30);
 	}
@@ -135,7 +141,7 @@ public class BasicMovement {
 	public void turnPosRight() {
 		robotSetVelocity((byte) 30, (byte) -30);
 	}
-	
+
 	// move backward
 	public void moveBackward() {
 		// logText(comReadWrite(new byte[] { 'x', '\r', '\n' }));

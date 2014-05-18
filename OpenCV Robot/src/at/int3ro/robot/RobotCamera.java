@@ -16,8 +16,6 @@ import android.util.Log;
 
 public class RobotCamera extends JavaCameraView implements PictureCallback {
 	private final String TAG = "JavaCameraViewClass";
-	
-	private boolean cameraOptimizationsOff = false;
 
 	public RobotCamera(Context context, AttributeSet attrs) {
 		super(context, attrs);
@@ -62,34 +60,36 @@ public class RobotCamera extends JavaCameraView implements PictureCallback {
 	 */
 	@SuppressWarnings("deprecation")
 	@TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH_MR1)
-	public boolean setCameraOptimizationsOff(boolean corr) {
+	public void setCameraOptimizationsOff() {
 		Log.i(TAG, "CameraOptimziationsOff start");
 
 		Parameters params = mCamera.getParameters();
-		params.setAutoExposureLock(corr);
-		params.setAutoWhiteBalanceLock(corr);
-		params.setColorEffect(Parameters.EFFECT_NONE);
-		params.setFocusMode(Parameters.FOCUS_MODE_AUTO);
-		params.setWhiteBalance(Parameters.WHITE_BALANCE_FLUORESCENT);
-		params.setExposureCompensation(0);
-		params.setVideoStabilization(corr);
+
+		params.setAutoExposureLock(true);
+		params.setAutoWhiteBalanceLock(true);
+		params.setWhiteBalance(Parameters.WHITE_BALANCE_WARM_FLUORESCENT);
+		params.setFocusMode(Parameters.FOCUS_MODE_INFINITY);
 		params.setPreviewFrameRate(30);
+
 		mCamera.setParameters(params);
 
 		Log.i(TAG,
 				"CameraOptimziationsOff finished. Framerate: "
 						+ params.getPreviewFrameRate());
-
-		cameraOptimizationsOff = corr;
-		return cameraOptimizationsOff;
 	}
 
 	/**
-	 * Gets the current Optimizations status
+	 * Toggle exposure lock
 	 * 
-	 * @return true when Optimizations are off and false if on
+	 * @return true if locked
 	 */
-	public boolean getCameraOptimizationsOff() {
-		return cameraOptimizationsOff;
+	@TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
+	public boolean toogleAutoExposureLock() {
+		Parameters params = mCamera.getParameters();
+		boolean result = !params.getAutoExposureLock();
+		params.setAutoExposureLock(result);
+		mCamera.setParameters(params);
+
+		return result;
 	}
 }

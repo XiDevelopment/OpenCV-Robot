@@ -1,4 +1,4 @@
-package at.int3ro.robot.controller;
+package at.int3ro.robot.controller.move;
 
 import java.util.LinkedList;
 import java.util.Queue;
