@@ -14,11 +14,11 @@ public class Beacon {
 		this.upperColor = upperColor;
 		this.globalCoordinate = globalCoordinate;
 	}
-	
+
 	public static enum Colors {
 		None, Red, Yellow, Blue, White,
 	}
-	
+
 	/**
 	 * @return the lowerColor
 	 */
@@ -62,5 +62,10 @@ public class Beacon {
 	 */
 	public void setGlobalCoordinate(Point globalCoordinate) {
 		this.globalCoordinate = globalCoordinate;
+	}
+
+	@Override
+	public String toString() {
+		return "Beacon" + getGlobalCoordinate();
 	}
 }
