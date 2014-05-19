@@ -20,22 +20,29 @@ public class PositionController {
 		return instance;
 	}
 
-	private RobotPosition currentPosition;
 	private RobotPosition lastPosition;
 	private long lastPositionTime;
 
 	public void calculatePositions(List<DetectedBeacon> beacons) {
 		// Only perform every 5 sek
 		if (Vision.getInstance().getHomography() != null
-				&& lastPositionTime + 5000 < getTime()) {
-			lastPosition = currentPosition;
+				&& lastPositionTime + 1000 < getTime()) {
 
 			if (beacons.size() >= 2) {
 				// TODO don't take first two, take two good picks
-				currentPosition = calculateRobotPosition(beacons.get(0),
-						beacons.get(1));
-			} else {
-				currentPosition = null;
+				RobotPosition pos = null;
+
+				for (DetectedBeacon a : beacons)
+					for (DetectedBeacon b : beacons)
+						if (a != b
+								&& calculateDistance(a.getBottom(),
+										b.getBottom()) > 250) {
+							pos = calculateRobotPosition(beacons.get(0),
+									beacons.get(1));
+						}
+
+				if (pos != null)
+					lastPosition = pos;
 			}
 			lastPositionTime = getTime();
 		}
@@ -87,7 +94,8 @@ public class PositionController {
 			beta2 = Math.abs(beta2);
 			rot = -1;
 		}
-        Log.i(TAG, "Calc of dist to Beacon: dist1: " + dist1 + ", beta2: "+ Math.toDegrees(beta2));
+		Log.i(TAG, "Calc of dist to Beacon: dist1: " + dist1 + ", beta2: "
+				+ Math.toDegrees(beta2));
 		x = dist1 * Math.sin(beta2);
 		y = dist1 * Math.cos(beta2);
 
@@ -133,6 +141,7 @@ public class PositionController {
 		Log.i(TAG, "dist1 = " + dist1);
 		Log.i(TAG, "dist2 = " + dist2);
 		Log.i(TAG, "dist3 = " + dist3);
+		Log.i(TAG, "dist3calculated = " + calculateDistance(p1, p2));
 		Log.i(TAG, "beta1 = " + beta1);
 		Log.i(TAG, "beta2 = " + beta2);
 		Log.i(TAG, "x = " + x);
@@ -156,13 +165,6 @@ public class PositionController {
 		double x = Math.pow(p1.x - p2.x, 2);
 		double y = Math.pow(p1.y - p2.y, 2);
 		return Math.sqrt(x + y);
-	}
-
-	/**
-	 * @return the currentPosition
-	 */
-	public RobotPosition getCurrentPosition() {
-		return currentPosition;
 	}
 
 	/**
