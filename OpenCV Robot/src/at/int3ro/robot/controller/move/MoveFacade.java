@@ -66,8 +66,8 @@ public class MoveFacade {
 	 */
 	public void setContext(Context context) {
 		this.context = context;
-		this.connectRobot();
-		// basicMovement.ledOn();
+		if( this.connectRobot() )
+			basicMovement.ledOn();
 	}
 
 	public boolean connectRobot() {

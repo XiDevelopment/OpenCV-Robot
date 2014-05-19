@@ -36,8 +36,10 @@ public class BasicMovement {
 	}
 
 	public void disconnect() {
-		if (com != null)
+		if (com != null) {
+			ledOff();
 			com.end();
+		}
 	}
 
 	/**
