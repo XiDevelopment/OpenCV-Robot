@@ -36,7 +36,7 @@ import at.int3ro.robot.model.RobotPosition;
 
 public class RobotActivity extends Activity implements CvCameraViewListener2,
 		OnTouchListener {
-	private static final String TAG = "Robot::Activity";
+	private static final String TAG = "RobotActivity";
 	private RobotCamera mOpenCvCameraView;
 
 	private MenuItem mItemBlue = null;
@@ -48,6 +48,7 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 	private MenuItem mItemHomography = null;
 	private MenuItem mItemDrive = null;
 	private MenuItem mItemDriveTest = null;
+	private MenuItem mItemConnect = null;
 
 	private Mat mRgba = null;
 
@@ -88,6 +89,8 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 		mOpenCvCameraView.setOnTouchListener(this);
 
 		mOpenCvCameraView.setCvCameraViewListener(this);
+		
+		MoveFacade.getInstance().setContext(this);
 	}
 
 	@Override
@@ -123,6 +126,7 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 		mItemAutoExposure = menu.add("Light");
 		mItemHomography = menu.add("Homography");
 
+		mItemConnect = menu.add("Connect");
 		mItemDrive = menu.add("Drive");
 		mItemDriveTest = menu.add("Drive Test");
 
@@ -163,7 +167,10 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 			else
 				Toast.makeText(this, "Homography failed!", Toast.LENGTH_SHORT)
 						.show();
-		} else if (item == mItemDrive) {
+		} else if (item == mItemConnect) {
+			Toast.makeText(this, "Connect: " + MoveFacade.getInstance().connectRobot(), Toast.LENGTH_SHORT).show();
+		}
+		else if (item == mItemDrive) {
 			RobotPosition position = PositionController.getInstance()
 					.getLastPosition();
 			if (position != null && position.getCoords() != null) {
@@ -198,6 +205,7 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 	}
 
 	public void onCameraViewStopped() {
+		MoveFacade.getInstance().close();
 	}
 
 	public Mat onCameraFrame(CvCameraViewFrame inputFrame) {

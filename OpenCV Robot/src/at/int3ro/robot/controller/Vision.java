@@ -22,7 +22,8 @@ import android.util.Log;
 import at.int3ro.robot.model.DetectedObject;
 
 public class Vision {
-	private static final String TAG = "Robot::Vision";
+	private static final String TAG = "RobotVision";
+	
 	private static Vision instance = null;
 
 	public static Vision getInstance() {
@@ -34,7 +35,7 @@ public class Vision {
 	// thresholds for color filtering
 	private int thresholdH = 5;
 	private int thresholdS = 65;
-	private int minV = 50;
+	private int minV = 25;
 	private int maxV = 255;
 
 	// Executor

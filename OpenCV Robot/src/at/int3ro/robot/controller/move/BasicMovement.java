@@ -24,27 +24,20 @@ public class BasicMovement {
 	private TextView textLog;
 	private FTDriver com = null;
 
-	public void SetContext(Context context) {
-		try {
-			if (com != null)
-				disconnect();
-
-			com = new FTDriver(
-					(UsbManager) context.getSystemService(Context.USB_SERVICE));
-
-			connect();
-		} catch (Exception ex) {
-			Toast.makeText(context, ex.toString(), Toast.LENGTH_LONG).show();
-		}
-	}
-
-	public boolean connect() {
+	public boolean connect(Context context) {
 		// TODO implement permission request
-		return com.begin(9600);
+		com = new FTDriver(
+				(UsbManager) context.getSystemService(Context.USB_SERVICE));
+
+		if (com != null)
+			return com.begin(9600);
+		else
+			return false;
 	}
 
 	public void disconnect() {
-		com.end();
+		if (com != null)
+			com.end();
 	}
 
 	/**

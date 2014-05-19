@@ -85,6 +85,8 @@ public class DetectedBeacon extends Beacon {
 	 * @return the bottom
 	 */
 	public Point getBottom() {
-		return this.getLowerObject().getBottom();
+		double x = (this.getLowerObject().getLeft().x + this.getLowerObject()
+				.getRight().x) / 2;
+		return new Point(x, this.getLowerObject().getBottom().y);
 	}
 }

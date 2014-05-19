@@ -14,7 +14,9 @@ import at.int3ro.robot.model.DetectedBeacon;
 import at.int3ro.robot.model.DetectedObject;
 
 public class BeaconController {
-	private static final String TAG = "Robot::BeaconController";
+	private static final String TAG = "RobotBeaconController";
+	private static final boolean debug = false;
+
 	private static BeaconController instance = null;
 
 	public static BeaconController getInstance() {
@@ -85,6 +87,10 @@ public class BeaconController {
 										.getLowerColor(), beacon
 										.getUpperColor(), beacon
 										.getGlobalCoordinate(), lower, upper));
+
+		if (debug)
+			for (DetectedObject obj : detectedObjects)
+				obj.draw(imageRgba);
 
 		Log.v(TAG, "Beacons found: " + detectedBeacons.size());
 

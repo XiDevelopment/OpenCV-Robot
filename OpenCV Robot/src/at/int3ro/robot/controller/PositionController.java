@@ -10,7 +10,7 @@ import at.int3ro.robot.model.DetectedBeacon;
 import at.int3ro.robot.model.RobotPosition;
 
 public class PositionController {
-	private static final String TAG = "Robot::BeaconController";
+	private static final String TAG = "RobotPositionController";
 
 	private static PositionController instance = null;
 
@@ -48,9 +48,14 @@ public class PositionController {
 
 	private RobotPosition calculateRobotPosition(DetectedBeacon b1,
 			DetectedBeacon b2) {
-
 		if (b1 == null || b2 == null)
 			return null;
+
+		if (b1.getBottom().x > b2.getBottom().x) {
+			DetectedBeacon temp = b1;
+			b1 = b2;
+			b2 = temp;
+		}
 
 		Point p1 = Vision.getInstance()
 				.calculateHomographyPoint(b1.getBottom());
@@ -82,14 +87,14 @@ public class PositionController {
 			beta2 = Math.abs(beta2);
 			rot = -1;
 		}
-
+        Log.i(TAG, "Calc of dist to Beacon: dist1: " + dist1 + ", beta2: "+ Math.toDegrees(beta2));
 		x = dist1 * Math.sin(beta2);
 		y = dist1 * Math.cos(beta2);
 
 		Point result = new Point();
 		// 1
 		Log.i(TAG, "b1globalC=" + b1.getGlobalCoordinate().x + "  b2globalC="
-				+ b2.getGlobalCoordinate().x + "   x=" + x);
+				+ b2.getGlobalCoordinate().x + "   x=" + x + "   y=" + y);
 		if (b1.getGlobalCoordinate().x == 0)
 			result.x = b1.getGlobalCoordinate().x + x;
 		else if (b1.getGlobalCoordinate().x == 1500)
@@ -120,11 +125,11 @@ public class PositionController {
 		/**
 		 * Calculation of Angle
 		 */
-		// double angle = PositionController.getInstance().getAngle(p1.y, b1,
-		// result.x, result.y);
-		double angle = 90;
+		double angle = PositionController.getInstance().getAngle(b1, result);
+		// double angle = 90;
 
 		// Log Positions
+		Log.i(TAG, "Robot Position");
 		Log.i(TAG, "dist1 = " + dist1);
 		Log.i(TAG, "dist2 = " + dist2);
 		Log.i(TAG, "dist3 = " + dist3);
@@ -180,59 +185,108 @@ public class PositionController {
 	 *            y coordinate of robot
 	 * @return angle to origin in degrees
 	 */
-	/*
-	 * public double getAngle(double x, BeaconBounds bb, double robotX, double
-	 * robotY) {
-	 * 
-	 * // calculate bottomPointXPixel double beacon_x =
-	 * bb.getGlobalCoordinate().x; double beacon_y = bb.getGlobalCoordinate().y;
-	 * 
-	 * // * //rotate beacon to center int center = 540; // * // * int
-	 * difference1 = bottomPointXPixel - center; // *
-	 * System.out.println(difference1); // * // * double rotate =
-	 * (double)difference1 / (2 * (double)center) * (Math.PI // * / 4);
-	 * System.out.println(Math.toDegrees(rotate)); // * // *
-	 * //MoveFacade.getInstance().turn(Math.toDegrees(rotate)); // * // * //get
-	 * new bottomPointXPixel??? int bottomPointXPixelNew = 540; // * // * int
-	 * difference2 = bottomPointXPixelNew - center; // *
-	 * System.out.println(difference2); // * // * double alpha2 = rotate *
-	 * (double) difference2 / ((double) difference1 // * - (double)
-	 * difference2); System.out.println(Math.toDegrees(alpha2)); // *
-	 * 
-	 * double c = calcDistance(robotX, robotY, beacon_x, beacon_y); // distance
-	 * // robot // to // beacon double a = x; // distance: display middle to
-	 * beacon in mm double b = 0.0; // distance to field boarder (depends on
-	 * beacon)
-	 * 
-	 * double alpha1 = 0.0; // degree normal (if beacon is exactly in the //
-	 * middle) double alpha2 = 0.0; // degree (away from the middle) double
-	 * alpha3 = 0.0; // real degree
-	 * 
-	 * alpha2 = Math.asin(a / c);
-	 * 
-	 * if (beacon_x == 0.0 && beacon_y == 0.0) { b = robotY; alpha1 =
-	 * Math.acos(b / c); alpha3 = Math.PI * 1.5 - alpha1; } else if (beacon_x ==
-	 * 0.0 && beacon_y == 750.0) { b = robotX; alpha1 = Math.acos(b / c); if
-	 * (robotY < 750.0) { alpha3 = Math.PI - alpha1; } else { alpha3 = Math.PI +
-	 * alpha1; } } else if (beacon_x == 0.0 && beacon_y == 1500.0) { b = 1500.0
-	 * - robotY; alpha1 = Math.acos(b / c); alpha3 = Math.PI / 2 + alpha1; }
-	 * else if (beacon_x == 750.0 && beacon_y == 1500.0) { b = 1500.0 - robotY;
-	 * alpha1 = Math.acos(b / c); if (robotX < 750.0) { alpha3 = Math.PI / 2 -
-	 * alpha1; } else { alpha3 = Math.PI / 2 + alpha1; } } else if (beacon_x ==
-	 * 1500.0 && beacon_y == 1500.0) { b = 1500.0 - robotY; alpha1 = Math.acos(b
-	 * / c); alpha3 = Math.PI / 2 - alpha1; } else if (beacon_x == 1500.0 &&
-	 * beacon_y == 750.0) { b = 1500.0 - robotX; alpha1 = Math.acos(b / c); if
-	 * (robotY < 750.0) { alpha3 = alpha1; } else { alpha3 = Math.PI * 2 -
-	 * alpha1; } } else if (beacon_x == 1500.0 && beacon_y == 0.0) { b = robotY;
-	 * alpha1 = Math.acos(b / c); alpha3 = Math.PI * 1.5 + alpha1; } else if
-	 * (beacon_x == 750.0 && beacon_y == 0.0) { b = robotY; alpha1 = Math.acos(b
-	 * / c); if (robotX < 750.0) { alpha3 = Math.PI * 1.5 + alpha1; } else {
-	 * alpha3 = Math.PI * 1.5 - alpha1; } }
-	 * 
-	 * alpha3 += alpha2;
-	 * 
-	 * // calculateAngle
-	 * 
-	 * return Math.toDegrees(alpha3); }
-	 */
+	public double getAngle(DetectedBeacon bb, Point robot) {
+		double x = Vision.getInstance()
+				.calculateHomographyPoint(bb.getBottom()).x;
+
+		Log.i(TAG, "getAngle");
+		Log.i(TAG, "x: " + x);
+		Log.i(TAG, "bb point: " + bb.getGlobalCoordinate().toString());
+		Log.i(TAG, "robotX: " + robot.x);
+		Log.i(TAG, "robotY: " + robot.y);
+
+		// calculate bottomPointXPixel
+		double beacon_x = bb.getGlobalCoordinate().x;
+		double beacon_y = bb.getGlobalCoordinate().y;
+
+		/*
+		 * //rotate beacon to center int center = 540;
+		 * 
+		 * int difference1 = bottomPointXPixel - center;
+		 * System.out.println(difference1);
+		 * 
+		 * double rotate = (double)difference1 / (2 * (double)center) * (Math.PI
+		 * / 4); System.out.println(Math.toDegrees(rotate));
+		 * 
+		 * //MoveFacade.getInstance().turn(Math.toDegrees(rotate));
+		 * 
+		 * //get new bottomPointXPixel??? int bottomPointXPixelNew = 540;
+		 * 
+		 * int difference2 = bottomPointXPixelNew - center;
+		 * System.out.println(difference2);
+		 * 
+		 * double alpha2 = rotate * (double) difference2 / ((double) difference1
+		 * - (double) difference2); System.out.println(Math.toDegrees(alpha2));
+		 */
+
+		// distance robot to beacon
+		double c = calculateDistance(robot.x, robot.y, beacon_x, beacon_y);
+		// distance: display middle to beacon in mm
+		double a = x;
+		// distance to field boarder (depends on beacon)
+		double b = 0.0;
+
+		double alpha1 = 0.0; // degree normal (if beacon is exactly in the
+								// middle)
+		double alpha2 = 0.0; // degree (away from the middle)
+		double alpha3 = 0.0; // real degree
+
+		alpha2 = Math.asin(a / c);
+
+		if (beacon_x == 0.0 && beacon_y == 0.0) {
+			b = robot.y;
+			alpha1 = Math.acos(b / c);
+			alpha3 = Math.PI * 1.5 - alpha1;
+		} else if (beacon_x == 0.0 && beacon_y == 750.0) {
+			b = robot.x;
+			alpha1 = Math.acos(b / c);
+			if (robot.y < 750.0) {
+				alpha3 = Math.PI - alpha1;
+			} else {
+				alpha3 = Math.PI + alpha1;
+			}
+		} else if (beacon_x == 0.0 && beacon_y == 1500.0) {
+			b = 1500.0 - robot.y;
+			alpha1 = Math.acos(b / c);
+			alpha3 = Math.PI / 2 + alpha1;
+		} else if (beacon_x == 750.0 && beacon_y == 1500.0) {
+			b = 1500.0 - robot.y;
+			alpha1 = Math.acos(b / c);
+			if (robot.x < 750.0) {
+				alpha3 = Math.PI / 2 - alpha1;
+			} else {
+				alpha3 = Math.PI / 2 + alpha1;
+			}
+		} else if (beacon_x == 1500.0 && beacon_y == 1500.0) {
+			b = 1500.0 - robot.y;
+			alpha1 = Math.acos(b / c);
+			alpha3 = Math.PI / 2 - alpha1;
+		} else if (beacon_x == 1500.0 && beacon_y == 750.0) {
+			b = 1500.0 - robot.y;
+			alpha1 = Math.acos(b / c);
+			if (robot.y < 750.0) {
+				alpha3 = alpha1;
+			} else {
+				alpha3 = Math.PI * 2 - alpha1;
+			}
+		} else if (beacon_x == 1500.0 && beacon_y == 0.0) {
+			b = robot.y;
+			alpha1 = Math.acos(b / c);
+			alpha3 = Math.PI * 1.5 + alpha1;
+		} else if (beacon_x == 750.0 && beacon_y == 0.0) {
+			b = robot.y;
+			alpha1 = Math.acos(b / c);
+			if (robot.x < 750.0) {
+				alpha3 = Math.PI * 1.5 + alpha1;
+			} else {
+				alpha3 = Math.PI * 1.5 - alpha1;
+			}
+		}
+
+		alpha3 += alpha2;
+
+		// calculateAngle
+
+		return Math.toDegrees(alpha3);
+	}
 }
