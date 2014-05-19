@@ -133,4 +133,9 @@ public class DetectedObject {
 		this.color = color;
 	}
 
+	@Override
+	public String toString() {
+		return "DetectedObject@" + getBottom();
+	}
+
 }

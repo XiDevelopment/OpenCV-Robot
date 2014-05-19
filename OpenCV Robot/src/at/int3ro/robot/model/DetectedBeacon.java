@@ -89,4 +89,9 @@ public class DetectedBeacon extends Beacon {
 				.getRight().x) / 2;
 		return new Point(x, this.getLowerObject().getBottom().y);
 	}
+
+	@Override
+	public String toString() {
+		return super.toString() + "@" + getBottom();
+	}
 }
