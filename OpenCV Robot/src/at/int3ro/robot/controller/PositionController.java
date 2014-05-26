@@ -39,6 +39,7 @@ public class PositionController {
 										b.getBottom()) > 250) {
 							pos = calculateRobotPosition(beacons.get(0),
 									beacons.get(1));
+							
 						}
 
 				if (pos != null)
@@ -57,11 +58,13 @@ public class PositionController {
 			DetectedBeacon b2) {
 		if (b1 == null || b2 == null)
 			return null;
+		Log.i(TAG, "b1: "+b1.getGlobalCoordinate() +";b2: "+b2.getGlobalCoordinate());
 
 		if (b1.getBottom().x > b2.getBottom().x) {
 			DetectedBeacon temp = b1;
 			b1 = b2;
 			b2 = temp;
+			Log.i(TAG, "switched");
 		}
 
 		Point p1 = Vision.getInstance()
@@ -71,46 +74,59 @@ public class PositionController {
 
 		if (p1 == null || p2 == null)
 			return null;
-
+		
+		Log.i(TAG, "p1: "+p1 +";p2: "+ p2);
 		// Distance to beacons
 		double dist1 = Math.sqrt(Math.pow(p1.x, 2) + Math.pow(p1.y, 2));
 		double dist2 = Math.sqrt(Math.pow(p2.x, 2) + Math.pow(p2.y, 2));
+		Log.i(TAG, "dist to p1: "+dist1+";to p2: "+dist2);
 
 		// Distance between beacons
 		double x = b2.getGlobalCoordinate().x - b1.getGlobalCoordinate().x;
 		double y = b2.getGlobalCoordinate().y - b1.getGlobalCoordinate().y;
 		double dist3 = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
+		Log.i(TAG, "dist3 from global between b1 und b2: "+dist3);
+		Log.i(TAG, "dist3calculated = " + calculateDistance(p1, p2));
 
 		double beta1 = Math
 				.acos((Math.pow(dist3, 2) + Math.pow(dist1, 2) - Math.pow(
 						dist2, 2)) / (2.0 * dist3 * dist1));
-		// double gamma = Math
-		// .acos((Math.pow(dist3, 2) + Math.pow(dist2, 2) - Math.pow(
-		// dist1, 2)) / (2.0 * dist3 * dist2));
-		double beta2 = Math.PI / 2 - beta1;
+		Log.i(TAG, "beta1: "+beta1 + ";Degrees: "+Math.toDegrees(beta1));
+		
 
-		int rot = 1;
+		double beta2 = Math.PI / 2 - beta1;
+		Log.i(TAG, "beta2: "+beta2+";Degrees: "+Math.toDegrees(beta2));
+
+		double rot = 1.0;
 		if (beta2 < 0) {
 			beta2 = Math.abs(beta2);
-			rot = -1;
+			rot = -1.0;
 		}
-		Log.i(TAG, "Calc of dist to Beacon: dist1: " + dist1 + ", beta2: "
-				+ Math.toDegrees(beta2));
+		Log.i(TAG, "rot = " + rot);
 		x = dist1 * Math.sin(beta2);
 		y = dist1 * Math.cos(beta2);
-
+		
+		// 3
+		if ((b1.getGlobalCoordinate().x == 1500 && b2.getGlobalCoordinate().x == 1500)
+				|| (b1.getGlobalCoordinate().x == 0 && b2.getGlobalCoordinate().x == 0)) {
+			double temp = x;
+			x = y;
+			y = temp;
+			
+			Log.i(TAG, "Switched x and y");
+		}
+		
 		Point result = new Point();
 		// 1
-		Log.i(TAG, "b1globalC=" + b1.getGlobalCoordinate().x + "  b2globalC="
-				+ b2.getGlobalCoordinate().x + "   x=" + x + "   y=" + y);
+		Log.i(TAG, "x=" + x + "   y=" + y);
 		if (b1.getGlobalCoordinate().x == 0)
 			result.x = b1.getGlobalCoordinate().x + x;
 		else if (b1.getGlobalCoordinate().x == 1500)
 			result.x = b1.getGlobalCoordinate().x - x;
 		else if (b2.getGlobalCoordinate().x == 0)
-			result.x = b1.getGlobalCoordinate().x + (rot * x);
-		else if (b2.getGlobalCoordinate().x == 1500)
 			result.x = b1.getGlobalCoordinate().x - (rot * x);
+		else if (b2.getGlobalCoordinate().x == 1500)
+			result.x = b1.getGlobalCoordinate().x + (rot * x);
 
 		// 2
 		if (b1.getGlobalCoordinate().y == 0)
@@ -118,37 +134,18 @@ public class PositionController {
 		else if (b1.getGlobalCoordinate().y == 1500)
 			result.y = b1.getGlobalCoordinate().y - y;
 		else if (b2.getGlobalCoordinate().y == 0)
-			result.y = b1.getGlobalCoordinate().y + (rot * y);
-		else if (b2.getGlobalCoordinate().y == 1500)
 			result.y = b1.getGlobalCoordinate().y - (rot * y);
+		else if (b2.getGlobalCoordinate().y == 1500)
+			result.y = b1.getGlobalCoordinate().y + (rot * y);
 
-		// 3
-		if ((b1.getGlobalCoordinate().x == 1500 && b2.getGlobalCoordinate().x == 1500)
-				|| (b1.getGlobalCoordinate().x == 0 && b2.getGlobalCoordinate().x == 0)) {
-			double temp = result.x;
-			result.x = result.y;
-			result.y = temp;
-		}
+		
+		Log.i(TAG, "result: " + result);
 
 		/**
 		 * Calculation of Angle
 		 */
 		double angle = PositionController.getInstance().getAngle(b1, result);
 		// double angle = 90;
-
-		// Log Positions
-		Log.i(TAG, "Robot Position");
-		Log.i(TAG, "dist1 = " + dist1);
-		Log.i(TAG, "dist2 = " + dist2);
-		Log.i(TAG, "dist3 = " + dist3);
-		Log.i(TAG, "dist3calculated = " + calculateDistance(p1, p2));
-		Log.i(TAG, "beta1 = " + beta1);
-		Log.i(TAG, "beta2 = " + beta2);
-		Log.i(TAG, "x = " + x);
-		Log.i(TAG, "y = " + y);
-		Log.i(TAG, "b1 = " + b1.getGlobalCoordinate());
-		Log.i(TAG, "b2 = " + b2.getGlobalCoordinate());
-		Log.i(TAG, "Result = " + result.toString());
 
 		RobotPosition position = new RobotPosition(result, angle);
 
