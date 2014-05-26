@@ -24,12 +24,15 @@ import android.view.View.OnTouchListener;
 import android.view.WindowManager;
 import android.widget.TextView;
 import android.widget.Toast;
+import at.int3ro.robot.controller.BallController;
 import at.int3ro.robot.controller.BeaconController;
 import at.int3ro.robot.controller.PositionController;
+import at.int3ro.robot.controller.StateMachine;
 import at.int3ro.robot.controller.Vision;
 import at.int3ro.robot.controller.move.MoveFacade;
 import at.int3ro.robot.model.Beacon;
 import at.int3ro.robot.model.DetectedBeacon;
+import at.int3ro.robot.model.DetectedObject;
 import at.int3ro.robot.model.RobotPosition;
 
 // Exercise 1.1
@@ -39,6 +42,7 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 	private static final String TAG = "RobotActivity";
 	private RobotCamera mOpenCvCameraView;
 
+	private MenuItem mItemBall = null;
 	private MenuItem mItemBlue = null;
 	private MenuItem mItemRed = null;
 	private MenuItem mItemYellow = null;
@@ -89,7 +93,7 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 		mOpenCvCameraView.setOnTouchListener(this);
 
 		mOpenCvCameraView.setCvCameraViewListener(this);
-		
+
 		MoveFacade.getInstance().setContext(this);
 	}
 
@@ -118,6 +122,7 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 		Log.i(TAG, "called onCreateOptionsMenu");
 		// mItemSwitchCamera = menu.add("Toggle Native/Java camera");
 
+		mItemBall = menu.add("Ball");
 		mItemRed = menu.add("Red");
 		mItemYellow = menu.add("Yellow");
 		mItemBlue = menu.add("Blue");
@@ -146,7 +151,9 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 	public boolean onOptionsItemSelected(MenuItem item) {
 		Log.i(TAG, "called onOptionsItemSelected; selected item: " + item);
 
-		if (item == mItemRed)
+		if (item == mItemBall)
+			colorSelect = Beacon.Colors.Ball;
+		else if (item == mItemRed)
 			colorSelect = Beacon.Colors.Red;
 		else if (item == mItemYellow)
 			colorSelect = Beacon.Colors.Yellow;
@@ -168,9 +175,10 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 				Toast.makeText(this, "Homography failed!", Toast.LENGTH_SHORT)
 						.show();
 		} else if (item == mItemConnect) {
-			Toast.makeText(this, "Connect: " + MoveFacade.getInstance().connectRobot(), Toast.LENGTH_SHORT).show();
-		}
-		else if (item == mItemDrive) {
+			Toast.makeText(this,
+					"Connect: " + MoveFacade.getInstance().connectRobot(),
+					Toast.LENGTH_SHORT).show();
+		} else if (item == mItemDrive) {
 			RobotPosition position = PositionController.getInstance()
 					.getLastPosition();
 			if (position != null && position.getCoords() != null) {
@@ -230,6 +238,8 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 		case Yellow:
 			color = new Scalar(255, 255, 0);
 			break;
+		case Ball:
+			color = new Scalar(0, 0, 0);
 		default:
 			break;
 		}
@@ -242,7 +252,6 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 					mRgba.height() / 2 + size);
 			Core.rectangle(mRgba, topLeft, bottomRight, color, 5);
 		} else {
-
 			List<DetectedBeacon> detectedBeacons = BeaconController
 					.getInstance().searchImage(mRgba);
 
@@ -263,12 +272,34 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 				sb.append("\n");
 			}
 
+			List<DetectedObject> detectedBalls = BallController.getInstance()
+					.searchImage(mRgba);
+
+			for (DetectedObject ball : detectedBalls) {
+				ball.draw(mRgba, 5);
+
+				if (Vision.getInstance().getHomography() != null) {
+					Point realPoint = Vision.getInstance()
+							.calculateHomographyPoint(ball.getBottom());
+					sb.append("Ball: "
+							+ realPoint
+							+ " - "
+							+ PositionController.getInstance()
+									.calculateDistance(realPoint,
+											new Point(0, 0)) + "\n");
+				}
+			}
+
 			PositionController.getInstance()
 					.calculatePositions(detectedBeacons);
 			if (PositionController.getInstance().getLastPosition() != null)
 				sb.append("Robot Position: "
 						+ PositionController.getInstance().getLastPosition()
 						+ "\n");
+			
+			
+			// Test of State Machine
+			StateMachine.getInstance().update(detectedBalls, detectedBeacons);
 		}
 
 		writeStatusText(sb.toString());
@@ -280,6 +311,9 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 	public boolean onTouch(View v, MotionEvent event) {
 		if (event.getAction() == MotionEvent.ACTION_DOWN) {
 			switch (colorSelect) {
+			case Ball:
+				BallController.getInstance().setColor(
+						Vision.getInstance().getColorFromImage(mRgba));
 			case Blue:
 				BeaconController.getInstance().setBlue(
 						Vision.getInstance().getColorFromImage(mRgba));
