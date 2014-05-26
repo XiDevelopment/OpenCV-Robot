@@ -16,7 +16,7 @@ public class Beacon {
 	}
 
 	public static enum Colors {
-		None, Red, Yellow, Blue, White,
+		None, Ball, Red, Yellow, Blue, White,
 	}
 
 	/**

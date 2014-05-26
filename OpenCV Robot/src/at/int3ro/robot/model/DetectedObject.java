@@ -59,6 +59,16 @@ public class DetectedObject {
 	}
 
 	/**
+	 * 
+	 * @return the size of the object
+	 */
+	public double size() {
+		double a = getRight().x - getLeft().x;
+		double b = getBottom().y - getTop().y;
+		return Math.abs(a * b);
+	}
+
+	/**
 	 * @return the bottom
 	 */
 	public Point getBottom() {
