@@ -1,7 +1,5 @@
 package at.int3ro.robot.controller;
 
-import java.util.Date;
-import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -15,8 +13,8 @@ import at.int3ro.robot.model.RobotPosition;
 
 public class PositionController {
 	private static final String TAG = "RobotPositionController";
-	public static final Point GOAL_POSITION = new Point(50, 50);
-	
+	public static final Point GOAL_POSITION = new Point(500, 500);
+
 	private static LinkedList<MoveLog> logList = new LinkedList<MoveLog>();
 
 	private static PositionController instance = null;
@@ -28,13 +26,12 @@ public class PositionController {
 	}
 
 	private RobotPosition lastPosition;
-	private long lastPositionTime;
 
-	public boolean calculatePositions(List<DetectedBeacon> beacons,
-			boolean performAlways) {
-		// Only perform every 5 sek
-		if (Vision.getInstance().getHomography() != null
-				&& (performAlways || lastPositionTime + 1000 < getTime())) {
+	public boolean calculatePositions(List<DetectedBeacon> beacons) {
+		boolean result = false;
+
+		// Only perform if a homography is present
+		if (Vision.getInstance().getHomography() != null) {
 
 			RobotPosition pos = null;
 			if (beacons.size() >= 2) {
@@ -46,30 +43,22 @@ public class PositionController {
 							pos = calculateRobotPosition(beacons.get(0),
 									beacons.get(1));
 						}
-				if (pos != null) {
+				if (pos != null && !Double.isNaN(pos.getAngle())) {
 					lastPosition = pos;
+					result = true;
 				}
 			}
-			lastPositionTime = getTime();
-			return (pos != null);
 		}
-		return false;
-	}
-
-	public boolean calculatePositions(List<DetectedBeacon> beacons) {
-		return calculatePositions(beacons, false);
-	}
-
-	private long getTime() {
-		Date date = new Date();
-		return date.getTime();
+		return result;
 	}
 
 	private RobotPosition calculateRobotPosition(DetectedBeacon b1,
 			DetectedBeacon b2) {
 		if (b1 == null || b2 == null)
 			return null;
-		Log.i(TAG, "b1: "+b1.getGlobalCoordinate() +";b2: "+b2.getGlobalCoordinate());
+		Log.i(TAG,
+				"b1: " + b1.getGlobalCoordinate() + ";b2: "
+						+ b2.getGlobalCoordinate());
 
 		if (b1.getBottom().x > b2.getBottom().x) {
 			DetectedBeacon temp = b1;
@@ -85,28 +74,27 @@ public class PositionController {
 
 		if (p1 == null || p2 == null)
 			return null;
-		
-		Log.i(TAG, "p1: "+p1 +";p2: "+ p2);
+
+		Log.i(TAG, "p1: " + p1 + ";p2: " + p2);
 		// Distance to beacons
 		double dist1 = Math.sqrt(Math.pow(p1.x, 2) + Math.pow(p1.y, 2));
 		double dist2 = Math.sqrt(Math.pow(p2.x, 2) + Math.pow(p2.y, 2));
-		Log.i(TAG, "dist to p1: "+dist1+";to p2: "+dist2);
+		Log.i(TAG, "dist to p1: " + dist1 + ";to p2: " + dist2);
 
 		// Distance between beacons
 		double x = b2.getGlobalCoordinate().x - b1.getGlobalCoordinate().x;
 		double y = b2.getGlobalCoordinate().y - b1.getGlobalCoordinate().y;
 		double dist3 = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
-		Log.i(TAG, "dist3 from global between b1 und b2: "+dist3);
+		Log.i(TAG, "dist3 from global between b1 und b2: " + dist3);
 		Log.i(TAG, "dist3calculated = " + calculateDistance(p1, p2));
 
 		double beta1 = Math
 				.acos((Math.pow(dist3, 2) + Math.pow(dist1, 2) - Math.pow(
 						dist2, 2)) / (2.0 * dist3 * dist1));
-		Log.i(TAG, "beta1: "+beta1 + ";Degrees: "+Math.toDegrees(beta1));
-		
+		Log.i(TAG, "beta1: " + beta1 + ";Degrees: " + Math.toDegrees(beta1));
 
 		double beta2 = Math.PI / 2 - beta1;
-		Log.i(TAG, "beta2: "+beta2+";Degrees: "+Math.toDegrees(beta2));
+		Log.i(TAG, "beta2: " + beta2 + ";Degrees: " + Math.toDegrees(beta2));
 
 		double rot = 1.0;
 		if (beta2 < 0) {
@@ -116,17 +104,17 @@ public class PositionController {
 		Log.i(TAG, "rot = " + rot);
 		x = dist1 * Math.sin(beta2);
 		y = dist1 * Math.cos(beta2);
-		
+
 		// 3
 		if ((b1.getGlobalCoordinate().x == 1500 && b2.getGlobalCoordinate().x == 1500)
 				|| (b1.getGlobalCoordinate().x == 0 && b2.getGlobalCoordinate().x == 0)) {
 			double temp = x;
 			x = y;
 			y = temp;
-			
+
 			Log.i(TAG, "Switched x and y");
 		}
-		
+
 		Point result = new Point();
 		// 1
 		Log.i(TAG, "x=" + x + "   y=" + y);
@@ -149,13 +137,13 @@ public class PositionController {
 		else if (b2.getGlobalCoordinate().y == 1500)
 			result.y = b1.getGlobalCoordinate().y + (rot * y);
 
-		
 		Log.i(TAG, "result: " + result);
 
 		/**
 		 * Calculation of Angle
 		 */
-		double angle = PositionController.getInstance().getAngle(b1, result, dist1);
+		double angle = PositionController.getInstance().getAngle(b1, result,
+				dist1);
 		// double angle = 90;
 
 		RobotPosition position = new RobotPosition(result, angle);
@@ -279,20 +267,21 @@ public class PositionController {
 
 		return Math.toDegrees(alpha3);
 	}
-	
+
 	public void addLog(Movement move, double amount) {
-		Log.i(TAG, "addLog called with movement: " + move + ", amount: " + amount);
+		Log.i(TAG, "addLog called with movement: " + move + ", amount: "
+				+ amount);
 		logList.add(new MoveLog(move, amount));
 	}
-	
+
 	public LinkedList<MoveLog> getLogUndo() {
 		Log.i(TAG, "getLogUndo called");
 		LinkedList<MoveLog> ll = new LinkedList<MoveLog>();
-		for(MoveLog ml : logList)
+		for (MoveLog ml : logList)
 			ll.addFirst(ml);
 		return ll;
 	}
-	
+
 	public void clearLog() {
 		Log.i(TAG, "clearLog called");
 		logList.clear();

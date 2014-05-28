@@ -6,7 +6,6 @@ import android.content.Context;
 import android.hardware.usb.UsbManager;
 import android.os.Build;
 import android.widget.TextView;
-import android.widget.Toast;
 
 @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR1)
 public class BasicMovement {

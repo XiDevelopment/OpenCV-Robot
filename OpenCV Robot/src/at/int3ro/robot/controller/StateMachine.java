@@ -74,7 +74,7 @@ public class StateMachine {
 
 	// Starting State
 	private State state = State.START;
-	
+
 	// Is cage down
 	private boolean caged = false;
 
@@ -105,12 +105,15 @@ public class StateMachine {
 			switch (state) {
 			case DETECT_POSITION:
 				detectPositionState();
+				waitCounter = 2;
 				break;
 			case DETECT_BALL:
 				detectBallState();
+				waitCounter = 1;
 				break;
 			case DETECT_CAGED:
 				detectCageState();
+				waitCounter = 1;
 				break;
 			case DETECT_FINISH:
 				detectFinishState();
@@ -122,7 +125,7 @@ public class StateMachine {
 				state = State.START;
 			}
 
-			waitCounter = 3; // Wait x frames before next action
+			//waitCounter = 1; // Wait x frames before next action
 
 			Log.i(TAG, "update() -> After: " + state);
 		} else {
@@ -131,33 +134,31 @@ public class StateMachine {
 	}
 
 	private void detectPositionState() {
-		// TODO for now just directly go into next state
-		setState(State.DETECT_BALL);
-
-		if (cBeacons.size() > 2) {
+		if (cBeacons.size() >= 2) {
 			// Get Position, and if one is found -> next state
-			if (PositionController.getInstance().calculatePositions(cBeacons,
-					true))
-				if(caged) {
+			if (PositionController.getInstance().calculatePositions(cBeacons)) {
+				if (caged) {
 					// Set current positions;
-					RobotPosition robotPos = PositionController.getInstance().getLastPosition();
-					Point goalPos = PositionController.GOAL_POSITION; 
-					
+					RobotPosition robotPos = PositionController.getInstance()
+							.getLastPosition();
+					Point goalPos = PositionController.GOAL_POSITION;
+
 					// Move to Goal
-					MoveFacade.getInstance().move(robotPos.getCoords(), robotPos.getAngle(), goalPos);
-					
+					MoveFacade.getInstance().move(robotPos.getCoords(),
+							robotPos.getAngle(), goalPos);
+
 					// Set state to Detect Finish
 					this.setState(State.DETECT_FINISH);
 				} else {
 					// Set state to Detect Ball
 					this.setState(State.DETECT_BALL);
 				}
-
+			}
 		} else {
 			// if not enough beacons visible, turn robot
 			Log.i(TAG, "send to MoveFacade: .turnInPlace(45) from State: "
-					+ this.getState());			
-			MoveFacade.getInstance().turnInPlace(45);
+					+ this.getState());
+			MoveFacade.getInstance().turnInPlace(35);
 		}
 	}
 
@@ -168,9 +169,9 @@ public class StateMachine {
 					cBalls.get(0).getBottom());
 
 			// Move to Ball
-			Log.i(TAG, "send to MoveFacade: .move(" + to.x + ", " + to.y
-					+ ") from State: " + this.getState());
-			MoveFacade.getInstance().move(to.x, to.y);
+			Log.i(TAG, "send to MoveFacade: .move(" + (to.x / 2) + ", "
+					+ (to.y / 2) + ") from State: " + this.getState());
+			MoveFacade.getInstance().move(to.x / 2, to.y / 2);
 
 			// Set followup state
 			this.setState(State.DETECT_CAGED);
@@ -178,7 +179,7 @@ public class StateMachine {
 			// Try to find ball by turning 45 degrees
 			Log.i(TAG, "send to MoveFacade: .turnInPlace(45) from State: "
 					+ this.getState());
-			MoveFacade.getInstance().turnInPlace(45);
+			MoveFacade.getInstance().turnInPlace(50);
 		}
 	}
 
@@ -189,7 +190,7 @@ public class StateMachine {
 					cBalls.get(0).getBottom());
 
 			// Check if ball in range of Cage
-			if (bottom.y < 250 && (bottom.x < 100 && bottom.x > -100)) {
+			if (bottom.y < 230 && (bottom.x < 90 && bottom.x > -90)) {
 				MoveFacade.getInstance().lowerBar();
 				caged = true;
 				this.setState(State.DETECT_POSITION);
@@ -200,15 +201,16 @@ public class StateMachine {
 		// If no if was successful, go back to state DETECT_BALL
 		this.setState(State.DETECT_BALL);
 	}
-	
+
 	private void detectFinishState() {
-		// TODO	
+		// TODO
 		this.setState(State.FINISH);
 	}
-	
+
 	private void finishState() {
 		// Final State
 		// Reset to Starting Configuration
+		MoveFacade.getInstance().blinkingLED(3, 0.5);
 		this.reset();
 	}
 
@@ -235,7 +237,7 @@ public class StateMachine {
 	}
 
 	public void start() {
-		state = State.DETECT_POSITION;
+		state = State.DETECT_BALL;
 	}
 
 	public void stop() {

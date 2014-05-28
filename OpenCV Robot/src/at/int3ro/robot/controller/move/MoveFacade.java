@@ -68,12 +68,26 @@ public class MoveFacade {
 	public void setContext(Context context) {
 		this.context = context;
 		if( this.connectRobot() ) {
-			basicMovement.ledOn();
+			blinkingLED(1, 3.0);
+		}
+		
+	}
+	
+	/**
+	 * this function lets the LED's blink for a defined count and time.
+	 * @param count amount of times the LED's should blink
+	 * @param time how long the LED's stay on and off
+	 */
+	public void blinkingLED(int count, final double time) {
+		for(int i = 0; i < count; i++) {
 			threadQueue.add(new Thread() {
 				public void run() {
 					try {
-						sleep(3000);
-					} catch(Exception ex) {
+						basicMovement.ledOn();
+						sleep((long) (time*1000));
+						basicMovement.ledOff();
+						sleep((long) (time*1000));
+					} catch (Exception ex) {
 						//do nothing
 					} finally {
 						basicMovement.ledOff();
@@ -81,7 +95,6 @@ public class MoveFacade {
 				}
 			});
 		}
-		
 	}
 
 	public boolean connectRobot() {
@@ -189,7 +202,8 @@ public class MoveFacade {
 		Log.i(TAG, "angle: " + angle);
 		Log.i(TAG, "distance: " + distance / 10.0);
 
-		move(distance / 10.0);
+		// Move -> in cm and -10 for offset of robot center point
+		move(distance / 10.0 - 10);
 	}
 
 	/**
@@ -199,11 +213,9 @@ public class MoveFacade {
 	 * @param dist
 	 *            the centimeter to move forward or backward
 	 */
-	public void move(double dist) {
+	public void move(final double cm) {
 		Log.i(TAG, "move called");
-		
-		//subtract the offset for middle of robot
-		final double cm = dist - 10.0;
+	
 		threadQueue.add(new Thread() {
 			@Override
 			public void run() {
