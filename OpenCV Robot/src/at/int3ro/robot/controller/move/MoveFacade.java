@@ -169,8 +169,8 @@ public class MoveFacade {
 
 	/**
 	 * Moves the robot to a target position specified by an x and y coordinate
-	 * in mm. Y is always positive, X is negative if it's left of the robot or
-	 * positive if right.
+	 * in mm. X is negative if it's left of the robot or positive if right, Y is
+	 * always positive.
 	 * 
 	 * @param x
 	 *            distance in mm
@@ -179,7 +179,7 @@ public class MoveFacade {
 	 */
 	public void move(double x, double y) {
 		Log.i(TAG, "move called");
-		double angle = 90.0 - Math.atan(y / x);
+		double angle = Math.atan(Math.abs(x) / y);
 		double distance = Math.abs(x) / Math.sin(angle);
 		if (x < 0.0)
 			turnInPlace(angle);
@@ -194,7 +194,7 @@ public class MoveFacade {
 
 	/**
 	 * Moves the given centimeter in either direction. > 0 moves forward and < 0
-	 * moves backward. If cm is 0 the robot does nothing.
+	 * moves backward. If dist is 0 the robot does nothing.
 	 * 
 	 * @param dist
 	 *            the centimeter to move forward or backward
