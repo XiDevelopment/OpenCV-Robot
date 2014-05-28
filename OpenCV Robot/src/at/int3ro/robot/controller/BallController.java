@@ -9,6 +9,7 @@ import org.opencv.core.Scalar;
 import at.int3ro.robot.model.DetectedObject;
 
 public class BallController {
+	@SuppressWarnings("unused")
 	private static final String TAG = "RobotBeaconController";
 
 	private static BallController instance = null;
