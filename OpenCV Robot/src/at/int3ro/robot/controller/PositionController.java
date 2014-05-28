@@ -1,16 +1,23 @@
 package at.int3ro.robot.controller;
 
 import java.util.Date;
+import java.util.Deque;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.opencv.core.Point;
 
 import android.util.Log;
 import at.int3ro.robot.model.DetectedBeacon;
+import at.int3ro.robot.model.MoveLog;
+import at.int3ro.robot.model.MoveLog.Movement;
 import at.int3ro.robot.model.RobotPosition;
 
 public class PositionController {
 	private static final String TAG = "RobotPositionController";
+	public static final Point GOAL_POSITION = new Point(50, 50);
+	
+	private static LinkedList<MoveLog> logList = new LinkedList<MoveLog>();
 
 	private static PositionController instance = null;
 
@@ -23,15 +30,14 @@ public class PositionController {
 	private RobotPosition lastPosition;
 	private long lastPositionTime;
 
-	public void calculatePositions(List<DetectedBeacon> beacons) {
+	public boolean calculatePositions(List<DetectedBeacon> beacons,
+			boolean performAlways) {
 		// Only perform every 5 sek
 		if (Vision.getInstance().getHomography() != null
-				&& lastPositionTime + 1000 < getTime()) {
+				&& (performAlways || lastPositionTime + 1000 < getTime())) {
 
+			RobotPosition pos = null;
 			if (beacons.size() >= 2) {
-				// TODO don't take first two, take two good picks
-				RobotPosition pos = null;
-
 				for (DetectedBeacon a : beacons)
 					for (DetectedBeacon b : beacons)
 						if (a != b
@@ -39,14 +45,19 @@ public class PositionController {
 										b.getBottom()) > 250) {
 							pos = calculateRobotPosition(beacons.get(0),
 									beacons.get(1));
-							
 						}
-
-				if (pos != null)
+				if (pos != null) {
 					lastPosition = pos;
+				}
 			}
 			lastPositionTime = getTime();
+			return (pos != null);
 		}
+		return false;
+	}
+
+	public boolean calculatePositions(List<DetectedBeacon> beacons) {
+		return calculatePositions(beacons, false);
 	}
 
 	private long getTime() {
@@ -144,7 +155,7 @@ public class PositionController {
 		/**
 		 * Calculation of Angle
 		 */
-		double angle = PositionController.getInstance().getAngle(b1, result);
+		double angle = PositionController.getInstance().getAngle(b1, result, dist1);
 		// double angle = 90;
 
 		RobotPosition position = new RobotPosition(result, angle);
@@ -184,7 +195,7 @@ public class PositionController {
 	 *            y coordinate of robot
 	 * @return angle to origin in degrees
 	 */
-	public double getAngle(DetectedBeacon bb, Point robot) {
+	public double getAngle(DetectedBeacon bb, Point robot, double distToBeac) {
 		double x = Vision.getInstance()
 				.calculateHomographyPoint(bb.getBottom()).x;
 
@@ -198,28 +209,8 @@ public class PositionController {
 		double beacon_x = bb.getGlobalCoordinate().x;
 		double beacon_y = bb.getGlobalCoordinate().y;
 
-		/*
-		 * //rotate beacon to center int center = 540;
-		 * 
-		 * int difference1 = bottomPointXPixel - center;
-		 * System.out.println(difference1);
-		 * 
-		 * double rotate = (double)difference1 / (2 * (double)center) * (Math.PI
-		 * / 4); System.out.println(Math.toDegrees(rotate));
-		 * 
-		 * //MoveFacade.getInstance().turn(Math.toDegrees(rotate));
-		 * 
-		 * //get new bottomPointXPixel??? int bottomPointXPixelNew = 540;
-		 * 
-		 * int difference2 = bottomPointXPixelNew - center;
-		 * System.out.println(difference2);
-		 * 
-		 * double alpha2 = rotate * (double) difference2 / ((double) difference1
-		 * - (double) difference2); System.out.println(Math.toDegrees(alpha2));
-		 */
-
 		// distance robot to beacon
-		double c = calculateDistance(robot.x, robot.y, beacon_x, beacon_y);
+		double c = distToBeac;
 		// distance: display middle to beacon in mm
 		double a = x;
 		// distance to field boarder (depends on beacon)
@@ -261,7 +252,7 @@ public class PositionController {
 			alpha1 = Math.acos(b / c);
 			alpha3 = Math.PI / 2 - alpha1;
 		} else if (beacon_x == 1500.0 && beacon_y == 750.0) {
-			b = 1500.0 - robot.y;
+			b = 1500.0 - robot.x;
 			alpha1 = Math.acos(b / c);
 			if (robot.y < 750.0) {
 				alpha3 = alpha1;
@@ -287,5 +278,23 @@ public class PositionController {
 		// calculateAngle
 
 		return Math.toDegrees(alpha3);
+	}
+	
+	public void addLog(Movement move, double amount) {
+		Log.i(TAG, "addLog called with movement: " + move + ", amount: " + amount);
+		logList.add(new MoveLog(move, amount));
+	}
+	
+	public LinkedList<MoveLog> getLogUndo() {
+		Log.i(TAG, "getLogUndo called");
+		LinkedList<MoveLog> ll = new LinkedList<MoveLog>();
+		for(MoveLog ml : logList)
+			ll.addFirst(ml);
+		return ll;
+	}
+	
+	public void clearLog() {
+		Log.i(TAG, "clearLog called");
+		logList.clear();
 	}
 }

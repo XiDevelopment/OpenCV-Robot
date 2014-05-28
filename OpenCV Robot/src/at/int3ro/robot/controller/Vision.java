@@ -91,7 +91,7 @@ public class Vision {
 	}
 
 	/**
-	 * Filters a given Mat in RGBA by a Color in HSV (180°) space and returns
+	 * Filters a given Mat in RGBA by a Color in HSV (180ï¿½) space and returns
 	 * the found contours
 	 * 
 	 * @param mat
@@ -174,6 +174,9 @@ public class Vision {
 			Point result = new Point();
 			result.x = mResult.get(0, 0)[0];
 			result.y = mResult.get(0, 0)[1];
+			
+			//fix robot offset for middle inside robot
+			result.y += 100.0;
 
 			// release temporary
 			mTo.release();

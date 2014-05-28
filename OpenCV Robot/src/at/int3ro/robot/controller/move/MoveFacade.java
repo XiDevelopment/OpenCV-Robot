@@ -3,11 +3,12 @@ package at.int3ro.robot.controller.move;
 import java.util.LinkedList;
 import java.util.Queue;
 
-import android.content.Context;
-
 import org.opencv.core.Point;
 
+import android.content.Context;
 import android.util.Log;
+import at.int3ro.robot.model.MoveLog;
+import at.int3ro.robot.model.MoveLog.Movement;
 
 public class MoveFacade {
 	private static final String TAG = "RobotMoveFacade";
@@ -66,8 +67,21 @@ public class MoveFacade {
 	 */
 	public void setContext(Context context) {
 		this.context = context;
-		if( this.connectRobot() )
+		if( this.connectRobot() ) {
 			basicMovement.ledOn();
+			threadQueue.add(new Thread() {
+				public void run() {
+					try {
+						sleep(3000);
+					} catch(Exception ex) {
+						//do nothing
+					} finally {
+						basicMovement.ledOff();
+					}
+				}
+			});
+		}
+		
 	}
 
 	public boolean connectRobot() {
@@ -102,12 +116,13 @@ public class MoveFacade {
 	 * @param curPos
 	 *            the current position
 	 * @param curAngle
-	 *            the current angle we are looking at given that 0° is in the
+	 *            the current angle we are looking at given that 0Â° is in the
 	 *            east
 	 * @param toPos
 	 *            target position
 	 */
 	public void move(Point curPos, double curAngle, Point toPos) {
+		Log.i(TAG, "move called");
 		Log.i(TAG, "Current: " + curPos.toString());
 		Log.i(TAG, "Target: " + toPos.toString());
 		Log.i(TAG, "Angle: " + curAngle);
@@ -154,8 +169,8 @@ public class MoveFacade {
 
 	/**
 	 * Moves the robot to a target position specified by an x and y coordinate
-	 * in mm. Y is always positive, X is negative if it's left of the robot or
-	 * positive if right.
+	 * in mm. X is negative if it's left of the robot or positive if right, Y is
+	 * always positive.
 	 * 
 	 * @param x
 	 *            distance in mm
@@ -163,7 +178,8 @@ public class MoveFacade {
 	 *            distance in mm
 	 */
 	public void move(double x, double y) {
-		double angle = 90.0 - Math.atan(y / x);
+		Log.i(TAG, "move called");
+		double angle = Math.atan(Math.abs(x) / y);
 		double distance = Math.abs(x) / Math.sin(angle);
 		if (x < 0.0)
 			turnInPlace(angle);
@@ -178,12 +194,16 @@ public class MoveFacade {
 
 	/**
 	 * Moves the given centimeter in either direction. > 0 moves forward and < 0
-	 * moves backward. If cm is 0 the robot does nothing.
+	 * moves backward. If dist is 0 the robot does nothing.
 	 * 
-	 * @param cm
+	 * @param dist
 	 *            the centimeter to move forward or backward
 	 */
-	public void move(final double cm) {
+	public void move(double dist) {
+		Log.i(TAG, "move called");
+		
+		//subtract the offset for middle of robot
+		final double cm = dist - 10.0;
 		threadQueue.add(new Thread() {
 			@Override
 			public void run() {
@@ -210,6 +230,7 @@ public class MoveFacade {
 	 *            the angle to rotate
 	 */
 	public void turn(final double angle) {
+		Log.i(TAG, "turn called with angle: " + angle);
 		threadQueue.add(new Thread() {
 			@Override
 			public void run() {
@@ -230,6 +251,7 @@ public class MoveFacade {
 	}
 
 	public void turnInPlace(final double angle) {
+		Log.i(TAG, "turnInPlace called with angle: " + angle);
 		threadQueue.add(new Thread() {
 			@Override
 			public void run() {
@@ -252,10 +274,15 @@ public class MoveFacade {
 	 * Raises the bar to a constant height at the top.
 	 */
 	public void raiseBar() {
+		Log.i(TAG, "raiseBar called");
 		threadQueue.add(new Thread() {
 			@Override
 			public void run() {
-				basicMovement.fixedBarHigh();
+				try {
+					basicMovement.fixedBarHigh();
+				} catch(Exception e) {
+					
+				}
 			}
 		});
 	}
@@ -264,11 +291,42 @@ public class MoveFacade {
 	 * Lowers the bar to a constant height at the bottom.
 	 */
 	public void lowerBar() {
+		Log.i(TAG, "lowerBar called");
 		threadQueue.add(new Thread() {
 			@Override
 			public void run() {
-				basicMovement.fixedBarLow();
+				try {
+					basicMovement.fixedBarLow();
+				} catch(Exception e) {
+					
+				}
 			}
 		});
+	}
+	
+	public void stopRobot() {
+		Log.i(TAG, "stopRobot called");
+		basicMovement.stop();
+		if(this.isActive()) {
+			Thread t = threadQueue.peek();
+			threadQueue.clear();
+			t.interrupt();
+			if(!threadQueue.isEmpty())
+				stopRobot();
+		}
+	}
+	
+	public void undoLog(LinkedList<MoveLog> log) {
+		Log.i(TAG, "undoLog called with log: " + log.toString());
+		if(!log.isEmpty()) {
+			for(MoveLog ml : log) {
+				if(ml.getMovement() == Movement.MOVE) {
+					this.move(-(ml.getAmount()/10.0));
+				} else {
+					this.turnInPlace(-(ml.getAmount()));
+				}
+			}
+		}
+		
 	}
 }
