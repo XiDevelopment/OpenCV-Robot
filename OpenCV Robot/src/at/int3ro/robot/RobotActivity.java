@@ -28,6 +28,7 @@ import at.int3ro.robot.controller.BallController;
 import at.int3ro.robot.controller.BeaconController;
 import at.int3ro.robot.controller.PositionController;
 import at.int3ro.robot.controller.StateMachine;
+import at.int3ro.robot.controller.StateMachine.State;
 import at.int3ro.robot.controller.Vision;
 import at.int3ro.robot.controller.move.MoveFacade;
 import at.int3ro.robot.model.Beacon;
@@ -53,6 +54,8 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 	private MenuItem mItemDrive = null;
 	private MenuItem mItemDriveTest = null;
 	private MenuItem mItemConnect = null;
+	private MenuItem mItemStart = null;
+	private MenuItem mItemRaiseBar = null;
 
 	private Mat mRgba = null;
 
@@ -135,6 +138,9 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 		mItemDrive = menu.add("Drive");
 		mItemDriveTest = menu.add("Drive Test");
 
+		mItemStart = menu.add("Start StateMachine");
+		mItemRaiseBar = menu.add("Raise Bar");
+
 		return true;
 	}
 
@@ -203,8 +209,13 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 				Log.e(TAG, "mItemDriveTest: " + ex.getMessage());
 				Toast.makeText(this, ex.getMessage(), Toast.LENGTH_LONG).show();
 			}
+		} else if (item == mItemStart) {
+			StateMachine.getInstance().start();
+			Toast.makeText(this, "StateMachine started!", Toast.LENGTH_SHORT)
+					.show();
+		} else if (item == mItemRaiseBar) {
+			MoveFacade.getInstance().raiseBar();
 		}
-
 		return true;
 	}
 
@@ -252,6 +263,7 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 					mRgba.height() / 2 + size);
 			Core.rectangle(mRgba, topLeft, bottomRight, color, 5);
 		} else {
+
 			List<DetectedBeacon> detectedBeacons = BeaconController
 					.getInstance().searchImage(mRgba);
 
@@ -290,16 +302,23 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 				}
 			}
 
-			PositionController.getInstance()
-					.calculatePositions(detectedBeacons);
+			// Calculate Position also when robot not running
+			if (StateMachine.getInstance().getState() == State.START)
+				PositionController.getInstance().calculatePositions(
+						detectedBeacons);
+
+			// Display Position
 			if (PositionController.getInstance().getLastPosition() != null)
 				sb.append("Robot Position: "
 						+ PositionController.getInstance().getLastPosition()
 						+ "\n");
-			
-			
-			// Test of State Machine
-			StateMachine.getInstance().update(detectedBalls, detectedBeacons);
+
+			if (StateMachine.getInstance().getState() != State.START) {
+				// Test of State Machine
+				StateMachine.getInstance().update(detectedBalls,
+						detectedBeacons);
+			}
+			sb.append("\n" + StateMachine.getInstance().getState() + "\n");
 		}
 
 		writeStatusText(sb.toString());
@@ -310,6 +329,12 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 	@Override
 	public boolean onTouch(View v, MotionEvent event) {
 		if (event.getAction() == MotionEvent.ACTION_DOWN) {
+			if (StateMachine.getInstance().getState() != State.START) {
+				StateMachine.getInstance().stop();
+				Toast.makeText(this, "StateMachine stopped!",
+						Toast.LENGTH_SHORT).show();
+			}
+
 			switch (colorSelect) {
 			case Ball:
 				BallController.getInstance().setColor(
