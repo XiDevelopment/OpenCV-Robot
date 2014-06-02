@@ -44,6 +44,6 @@ public class RobotPosition {
 
 	@Override
 	public String toString() {
-		return "(" + coords + " " + angle + ")";
+		return "({" + Math.round(coords.x) + "x" + Math.round(coords.y) + "} " + Math.round(angle) + ")";
 	}
 }

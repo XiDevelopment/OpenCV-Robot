@@ -179,6 +179,7 @@ public class Vision {
 			result.y += 100.0;
 
 			// fix homography precision
+			result.x = correctHomographyDistance(result.x);
 			result.y = correctHomographyDistance(result.y);
 
 			// release temporary
@@ -192,7 +193,7 @@ public class Vision {
 	}
 
 	private double correctHomographyDistance(double x) {
-		return -0.000219274 * (x * x) + 1.10473 * x - 26.7717;
+		return 63.1866 + 0.701716 * x + 0.000460812 * x * x;
 	}
 
 	/**

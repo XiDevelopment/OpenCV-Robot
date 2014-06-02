@@ -23,7 +23,7 @@ public class StateMachine {
 		return instance;
 	}
 
-	public static final int BALL_COUNT = 10;
+	public static final int BALL_COUNT = 3;
 	private int ballsCollected = 0;
 
 	public enum State {
@@ -198,6 +198,9 @@ public class StateMachine {
 			// Get realworld Ball pos
 			Point to = Vision.getInstance().calculateHomographyPoint(
 					currentBall.getBottom());
+			
+			if(to.y <= 0)
+				return;
 
 			// Move to Ball
 			Log.i(TAG, "send to MoveFacade: .move(" + (to.x / 2) + ", "
@@ -241,8 +244,19 @@ public class StateMachine {
 
 		if (ballsCollected > BALL_COUNT)
 			this.setState(State.FINISH);
-		else
+		else {
+			MoveFacade.getInstance().raiseBar();
+			
+			// Wait 5 sec
+			try {
+				Thread.sleep(5000);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
 			this.setState(State.DETECT_BALL);
+		}
 	}
 
 	private void finishState() {  

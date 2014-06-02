@@ -269,40 +269,15 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 			List<DetectedBeacon> detectedBeacons = BeaconController
 					.getInstance().searchImage(mRgba);
 
-			for (DetectedBeacon beacon : detectedBeacons) {
-				beacon.draw(mRgba, 3, new Scalar(0, 0, 0));
-				sb.append("Beacon " + beacon.getGlobalCoordinate()
-						+ " detected!");
-				if (Vision.getInstance().getHomography() != null) {
-					Point realPoint = Vision.getInstance()
-							.calculateHomographyPoint(beacon.getBottom());
-					sb.append(" Distances: "
-							+ realPoint
-							+ " - "
-							+ PositionController.getInstance()
-									.calculateDistance(realPoint,
-											new Point(0, 0)));
-				}
-				sb.append("\n");
-			}
-
 			List<DetectedObject> detectedBalls = BallController.getInstance()
 					.searchImage(mRgba);
 
-			for (DetectedObject ball : detectedBalls) {
-				ball.draw(mRgba, 5);
-
-				if (Vision.getInstance().getHomography() != null) {
-					Point realPoint = Vision.getInstance()
-							.calculateHomographyPoint(ball.getBottom());
-					sb.append("Ball: "
-							+ realPoint
-							+ " - "
-							+ PositionController.getInstance()
-									.calculateDistance(realPoint,
-											new Point(0, 0)) + "\n");
-				}
+			if (StateMachine.getInstance().getState() != State.START) {
+				// Test of State Machine
+				StateMachine.getInstance().update(detectedBalls,
+						detectedBeacons);
 			}
+			sb.append("\n" + StateMachine.getInstance().getState() + "\n");
 
 			// Calculate Position also when robot not running
 			if (StateMachine.getInstance().getState() == State.START)
@@ -311,16 +286,44 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 
 			// Display Position
 			if (PositionController.getInstance().getLastPosition() != null)
-				sb.append("Robot Position: "
+				sb.append("R-Pos: "
 						+ PositionController.getInstance().getLastPosition()
 						+ "\n");
 
-			if (StateMachine.getInstance().getState() != State.START) {
-				// Test of State Machine
-				StateMachine.getInstance().update(detectedBalls,
-						detectedBeacons);
+			// Write Beacons to sb
+			for (DetectedBeacon beacon : detectedBeacons) {
+				beacon.draw(mRgba, 3, new Scalar(0, 0, 0));
+				// sb.append("Beacon " + beacon.getGlobalCoordinate()
+				// + " detected!");
+				// if (Vision.getInstance().getHomography() != null) {
+				// Point realPoint = Vision.getInstance()
+				// .calculateHomographyPoint(beacon.getBottom());
+				// sb.append(" Distances: "
+				// + realPoint
+				// + " - "
+				// + PositionController.getInstance()
+				// .calculateDistance(realPoint,
+				// new Point(0, 0)));
+				// }
+				// sb.append("\n");
 			}
-			sb.append("\n" + StateMachine.getInstance().getState() + "\n");
+
+			// Write balls to text
+			for (DetectedObject ball : detectedBalls) {
+				ball.draw(mRgba, 5);
+
+				// if (Vision.getInstance().getHomography() != null) {
+				// Point realPoint = Vision.getInstance()
+				// .calculateHomographyPoint(ball.getBottom());
+				// sb.append("Ball: "
+				// + realPoint
+				// + " - "
+				// + PositionController.getInstance()
+				// .calculateDistance(realPoint,
+				// new Point(0, 0)) + "\n");
+				// }
+			}
+
 		}
 
 		writeStatusText(sb.toString());
