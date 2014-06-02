@@ -23,7 +23,7 @@ import at.int3ro.robot.model.DetectedObject;
 
 public class Vision {
 	private static final String TAG = "RobotVision";
-	
+
 	private static Vision instance = null;
 
 	public static Vision getInstance() {
@@ -174,9 +174,12 @@ public class Vision {
 			Point result = new Point();
 			result.x = mResult.get(0, 0)[0];
 			result.y = mResult.get(0, 0)[1];
-			
-			//fix robot offset for middle inside robot
+
+			// fix robot offset for middle inside robot
 			result.y += 100.0;
+
+			// fix homography precision
+			result.y = correctHomographyDistance(result.y);
 
 			// release temporary
 			mTo.release();
@@ -186,6 +189,10 @@ public class Vision {
 		} else {
 			return null;
 		}
+	}
+
+	private double correctHomographyDistance(double x) {
+		return -0.000219274 * (x * x) + 1.10473 * x - 26.7717;
 	}
 
 	/**
@@ -198,7 +205,7 @@ public class Vision {
 	public Point calculateHomographyPoint(Point to) {
 		return calculateHomographyPoint(to, mHomography);
 	}
-	
+
 	/**
 	 * Gets a color from the average of a 10x10 rectangle at exactly the middle
 	 * of the image

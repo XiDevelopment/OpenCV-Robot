@@ -32,12 +32,34 @@ public class BallController {
 			List<DetectedObject> detectedObjects = Vision.getInstance()
 					.getObjectByColor(imageRgba, color);
 
-			detectedBalls = detectedObjects;
+			// set global var and filter balls
+			detectedBalls = filterBalls(detectedObjects);
+			
 			return detectedObjects;
 		} else {
 			detectedBalls.clear();
 			return new ArrayList<DetectedObject>();
 		}
+	}
+
+	private List<DetectedObject> filterBalls(List<DetectedObject> balls) {
+		List<DetectedObject> result = new ArrayList<DetectedObject>();
+
+		for (DetectedObject b1 : balls) {
+			for (DetectedObject b2 : balls) {
+				if ((b1 != b2) && (b2.getLeft().x < b1.getRight().x)
+						&& (b2.getRight().x > b1.getLeft().x)
+						&& (b2.getTop().y < b1.getBottom().y)
+						&& (b2.getBottom().y > b1.getTop().y)) {
+					if (b1.size() > b2.size())
+						result.add(b1);
+					else
+						result.add(b2);
+				}
+			}
+		}
+
+		return result;
 	}
 
 	public Scalar getColor() {

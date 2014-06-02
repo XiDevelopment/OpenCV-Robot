@@ -142,7 +142,7 @@ public class PositionController {
 		/**
 		 * Calculation of Angle
 		 */
-		double angle = PositionController.getInstance().getAngle(b1, result,
+		double angle = getAngle(b1, result,
 				dist1);
 		// double angle = 90;
 
@@ -152,6 +152,10 @@ public class PositionController {
 
 		return position;
 	}
+	
+	public double calculateDistance(Point point) {
+		return calculateDistance(point, new Point(0,0));
+	}
 
 	public double calculateDistance(double x1, double y1, double x2, double y2) {
 		return calculateDistance(new Point(x1, y1), new Point(x2, y2));
@@ -160,9 +164,13 @@ public class PositionController {
 	public double calculateDistance(Point p1, Point p2) {
 		double x = Math.pow(p1.x - p2.x, 2);
 		double y = Math.pow(p1.y - p2.y, 2);
-		return Math.sqrt(x + y);
+		double distance = Math.sqrt(x + y);
+		
+		
+		
+		return distance;
 	}
-
+	
 	/**
 	 * @return the lastPosition
 	 */

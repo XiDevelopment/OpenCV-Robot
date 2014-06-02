@@ -23,6 +23,9 @@ public class StateMachine {
 		return instance;
 	}
 
+	public static final int BALL_COUNT = 10;
+	private int ballsCollected = 0;
+
 	public enum State {
 		START {
 			@Override
@@ -55,7 +58,7 @@ public class StateMachine {
 		DETECT_FINISH {
 			@Override
 			public Set<State> possibleFollowUps() {
-				return EnumSet.of(FINISH);
+				return EnumSet.of(FINISH, DETECT_BALL);
 			}
 		},
 
@@ -125,7 +128,7 @@ public class StateMachine {
 				state = State.START;
 			}
 
-			//waitCounter = 1; // Wait x frames before next action
+			// waitCounter = 1; // Wait x frames before next action
 
 			Log.i(TAG, "update() -> After: " + state);
 		} else {
@@ -164,9 +167,37 @@ public class StateMachine {
 
 	private void detectBallState() {
 		if (cBalls.size() > 0) {// Balls in sight
+
+			// Use ball nearest to robot
+			DetectedObject currentBall = null;
+			double distCurrent = 0.0;
+			double distNew = 0.0;
+
+			for (DetectedObject ball : cBalls) {
+				if (currentBall != null) {
+					distCurrent = PositionController.getInstance()
+							.calculateDistance(
+									Vision.getInstance()
+											.calculateHomographyPoint(
+													currentBall.getBottom()));
+					distNew = PositionController.getInstance()
+							.calculateDistance(
+									Vision.getInstance()
+											.calculateHomographyPoint(
+													ball.getBottom()));
+				}
+
+				if (currentBall == null || distNew < distCurrent)
+					currentBall = ball;
+			}
+
+			// if no ball was selected exit func
+			if (currentBall == null)
+				return;
+
 			// Get realworld Ball pos
 			Point to = Vision.getInstance().calculateHomographyPoint(
-					cBalls.get(0).getBottom());
+					currentBall.getBottom());
 
 			// Move to Ball
 			Log.i(TAG, "send to MoveFacade: .move(" + (to.x / 2) + ", "
@@ -190,7 +221,7 @@ public class StateMachine {
 					cBalls.get(0).getBottom());
 
 			// Check if ball in range of Cage
-			if (bottom.y < 230 && (bottom.x < 90 && bottom.x > -90)) {
+			if (bottom.y < 250 && (bottom.x < 100 && bottom.x > -100)) {
 				MoveFacade.getInstance().lowerBar();
 				caged = true;
 				this.setState(State.DETECT_POSITION);
@@ -203,15 +234,22 @@ public class StateMachine {
 	}
 
 	private void detectFinishState() {
-		// TODO
-		this.setState(State.FINISH);
+		ballsCollected++;
+		
+		// let LEDs blink a bit
+		MoveFacade.getInstance().blinkingLED(3, 0.25);
+
+		if (ballsCollected > BALL_COUNT)
+			this.setState(State.FINISH);
+		else
+			this.setState(State.DETECT_BALL);
 	}
 
-	private void finishState() {
+	private void finishState() {  
 		// Final State
 		// Reset to Starting Configuration
-		MoveFacade.getInstance().blinkingLED(3, 0.5);
 		this.reset();
+		MoveFacade.getInstance().blinkingLED(6, 0.5);
 	}
 
 	public State getState() {
@@ -229,6 +267,7 @@ public class StateMachine {
 	public void reset() {
 		state = State.START;
 		caged = false;
+		ballsCollected = 0;
 		try {
 			MoveFacade.getInstance().raiseBar();
 		} catch (Exception ex) {
