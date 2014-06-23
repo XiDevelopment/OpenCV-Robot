@@ -128,14 +128,15 @@ public class StateMachine {
 				state = State.START;
 			}
 
-			// waitCounter = 1; // Wait x frames before next action
-
 			Log.i(TAG, "update() -> After: " + state);
 		} else {
 			waitCounter--;
 		}
 	}
 
+	/**
+	 * DETECT_POSITION State
+	 */
 	private void detectPositionState() {
 		if (cBeacons.size() >= 2) {
 			// Get Position, and if one is found -> next state
@@ -165,6 +166,9 @@ public class StateMachine {
 		}
 	}
 
+	/**
+	 * DETECT_BALL State
+	 */
 	private void detectBallState() {
 		if (cBalls.size() > 0) {// Balls in sight
 
@@ -217,6 +221,9 @@ public class StateMachine {
 		}
 	}
 
+	/**
+	 * DETECT_CAGE State
+	 */
 	private void detectCageState() {
 		if (cBalls.size() > 0) {
 			// Get realworld Ball pos
@@ -236,6 +243,9 @@ public class StateMachine {
 		this.setState(State.DETECT_BALL);
 	}
 
+	/**
+	 * DETECT_FINISH State
+	 */
 	private void detectFinishState() {
 		ballsCollected++;
 		
@@ -259,6 +269,9 @@ public class StateMachine {
 		}
 	}
 
+	/**
+	 * FINISH_STATE
+	 */
 	private void finishState() {  
 		// Final State
 		// Reset to Starting Configuration
@@ -270,6 +283,11 @@ public class StateMachine {
 		return state;
 	}
 
+	/**
+	 * Sets the state
+	 * @param state to set
+	 * @return true if state changed, false if not
+	 */
 	public boolean setState(State state) {
 		if (this.state.possibleFollowUps().contains(state)) {
 			this.state = state;
@@ -278,6 +296,9 @@ public class StateMachine {
 			return false;
 	}
 
+	/**
+	 * Resets the state machine
+	 */
 	public void reset() {
 		state = State.START;
 		caged = false;
@@ -289,10 +310,16 @@ public class StateMachine {
 		}
 	}
 
+	/**
+	 * Starts the state machine
+	 */
 	public void start() {
 		state = State.DETECT_BALL;
 	}
 
+	/**
+	 * Stops the state machine and resets it
+	 */
 	public void stop() {
 		this.reset();
 		if (MoveFacade.getInstance().isActive())

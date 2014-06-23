@@ -63,6 +63,16 @@ public class Vision {
 		}
 	}
 
+	/**
+	 * Filters a given Mat in RGBA by a list of colors in HSV (180�) space and
+	 * returns the found contours, this function is threaded
+	 * 
+	 * @param mat
+	 *            the mat to filter (RGBA Colorspace)
+	 * @param colors
+	 *            the colors to filter (Scalar (H, S, V))
+	 * @return list of contours
+	 */
 	public List<DetectedObject> getObjectByColorThreaded(Mat mat,
 			List<Scalar> colors) {
 		List<FutureTask<List<DetectedObject>>> tasks = new ArrayList<FutureTask<List<DetectedObject>>>();
@@ -131,9 +141,6 @@ public class Vision {
 		Imgproc.erode(mRgba, mRgba, Imgproc.getStructuringElement(
 				Imgproc.MORPH_ELLIPSE, new Size(5, 5)));
 
-		// Imgproc.pyrUp(mRgba, mRgba);
-		// Imgproc.pyrUp(mRgba, mRgba);
-
 		// Get Contours
 		List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
 		Imgproc.findContours(mRgba, contours, new Mat(), Imgproc.RETR_LIST,
@@ -141,7 +148,9 @@ public class Vision {
 
 		List<DetectedObject> result = new ArrayList<DetectedObject>();
 		for (MatOfPoint contour : contours) {
+			// Increase contour size, because the image was 2x PyrDown before
 			Core.multiply(contour, new Scalar(4, 4), contour);
+			
 			result.add(new DetectedObject(contour, color));
 			contour.release(); // release, not needed anymore
 		}
@@ -179,10 +188,10 @@ public class Vision {
 			result.y += 100.0;
 
 			// fix homography precision
-			result.x = correctHomographyDistance(result.x);
+			// result.x = correctHomographyDistance(result.x);
 			result.y = correctHomographyDistance(result.y);
 
-			// release temporary
+			// release temporary mats
 			mTo.release();
 			mResult.release();
 
@@ -190,10 +199,6 @@ public class Vision {
 		} else {
 			return null;
 		}
-	}
-
-	private double correctHomographyDistance(double x) {
-		return 63.1866 + 0.701716 * x + 0.000460812 * x * x;
 	}
 
 	/**
@@ -205,6 +210,18 @@ public class Vision {
 	 */
 	public Point calculateHomographyPoint(Point to) {
 		return calculateHomographyPoint(to, mHomography);
+	}
+
+	/**
+	 * Corrects the estimated distances with an regression function via measured
+	 * distances
+	 * 
+	 * @param x
+	 *            the value for correction
+	 * @return the corrected value
+	 */
+	private double correctHomographyDistance(double x) {
+		return 63.1866 + 0.701716 * x + 0.000460812 * x * x;
 	}
 
 	/**

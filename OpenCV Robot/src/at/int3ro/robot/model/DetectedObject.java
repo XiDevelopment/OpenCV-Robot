@@ -20,6 +20,12 @@ public class DetectedObject {
 		calculatePoints(contour);
 	}
 
+	/**
+	 * Calculates extreme points
+	 * 
+	 * @param contour
+	 *            of the object
+	 */
 	private void calculatePoints(MatOfPoint contour) {
 		// Start with extreme Values
 		bottom = new Point(Integer.MIN_VALUE, Integer.MIN_VALUE);
@@ -41,6 +47,14 @@ public class DetectedObject {
 		}
 	}
 
+	/**
+	 * Draws the Object onto a Mat
+	 * 
+	 * @param matTo
+	 *            the mat to draw on
+	 * @param thickness
+	 *            the thickness of the borders
+	 */
 	public void draw(Mat matTo, int thickness) {
 		// Bottom Point
 		Core.circle(matTo, this.getBottom(), 5, new Scalar(255, 0, 0), 3);
@@ -54,12 +68,17 @@ public class DetectedObject {
 		Core.rectangle(matTo, topLeft, bottomRight, this.getColor(), thickness);
 	}
 
+	/**
+	 * Draws the Object onto a Mat
+	 * 
+	 * @param matTo
+	 *            the mat to draw on
+	 */
 	public void draw(Mat matTo) {
 		draw(matTo, 1);
 	}
 
 	/**
-	 * 
 	 * @return the size of the object
 	 */
 	public double size() {

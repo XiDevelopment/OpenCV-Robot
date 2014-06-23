@@ -27,6 +27,13 @@ public class BallController {
 	private Scalar color = null;
 	private List<DetectedObject> detectedBalls;
 
+	/**
+	 * Searches the image for balls
+	 * 
+	 * @param imageRgba
+	 *            the image to search
+	 * @return the detected balls
+	 */
 	public List<DetectedObject> searchImage(Mat imageRgba) {
 		if (color != null) {
 			List<DetectedObject> detectedObjects = Vision.getInstance()
@@ -34,7 +41,7 @@ public class BallController {
 
 			// set global var and filter balls
 			detectedBalls = filterBalls(detectedObjects);
-			
+
 			return detectedObjects;
 		} else {
 			detectedBalls.clear();
@@ -42,6 +49,12 @@ public class BallController {
 		}
 	}
 
+	/**
+	 * Filters duplicate balls
+	 * 
+	 * @param balls the balls
+	 * @return the filtered balls
+	 */
 	private List<DetectedObject> filterBalls(List<DetectedObject> balls) {
 		List<DetectedObject> result = new ArrayList<DetectedObject>();
 

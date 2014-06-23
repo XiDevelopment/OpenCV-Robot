@@ -15,6 +15,9 @@ public class Beacon {
 		this.globalCoordinate = globalCoordinate;
 	}
 
+	/**
+	 * Possible Colors
+	 */
 	public static enum Colors {
 		None, Ball, Red, Yellow, Blue, White,
 	}

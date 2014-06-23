@@ -32,12 +32,16 @@ public class BeaconController {
 	private Scalar yellow;
 	private Scalar white;
 
+	// Tolerance for the Saturation value
 	private int tolerance = 25;
 
 	private BeaconController() {
 		setUpBeaconLocations();
 	}
 
+	/**
+	 * Set up beacons with pre defined locations
+	 */
 	public void setUpBeaconLocations() {
 		configuredBeacons.clear();
 		configuredBeacons.add(new Beacon(blue, yellow, new Point(0, 0)));
@@ -50,9 +54,17 @@ public class BeaconController {
 		configuredBeacons.add(new Beacon(blue, red, new Point(750, 0)));
 	}
 
+	/**
+	 * Searches a image for beacons
+	 * 
+	 * @param imageRgba
+	 *            the image
+	 * @return the beacons found
+	 */
 	public List<DetectedBeacon> searchImage(Mat imageRgba) {
 		Log.v(TAG, "Started: searchImage");
 
+		// Add colors to list, if they are set.
 		List<Scalar> colors = new ArrayList<Scalar>();
 		if (red != null)
 			colors.add(red);
@@ -63,17 +75,19 @@ public class BeaconController {
 		if (white != null)
 			colors.add(white);
 
+		// Log
 		for (Scalar color : colors)
 			Log.v(TAG, "Color in List: " + color);
 
+		// Get Objects by color with threading
 		List<DetectedObject> detectedObjects = Vision.getInstance()
 				.getObjectByColorThreaded(imageRgba, colors);
 
+		// Log
 		Log.v(TAG,
 				"Objects detected by Vision class: " + detectedObjects.size());
 
 		List<DetectedBeacon> detectedBeacons = new ArrayList<DetectedBeacon>();
-
 		// Massive For loop, checking every possible combination of beacons
 		for (DetectedObject lower : detectedObjects)
 			for (Beacon beacon : configuredBeacons)
@@ -88,16 +102,25 @@ public class BeaconController {
 										.getUpperColor(), beacon
 										.getGlobalCoordinate(), lower, upper));
 
+		// If debug variable is set, drow EVERY object detected
 		if (debug)
 			for (DetectedObject obj : detectedObjects)
 				obj.draw(imageRgba);
 
+		// Log
 		Log.v(TAG, "Beacons found: " + detectedBeacons.size());
-
 		Log.v(TAG, "Finished: searchImage");
+		
 		return detectedBeacons;
 	}
 
+	/**
+	 * Checks if two objects overlap
+	 * @param upper uper object
+	 * @param lower lower object
+	 * @param tolerance
+	 * @return true if overlap
+	 */
 	private boolean checkOverlap(DetectedObject upper, DetectedObject lower,
 			int tolerance) {
 
@@ -201,6 +224,9 @@ public class BeaconController {
 		this.tolerance = tolerance;
 	}
 
+	/**
+	 * Clears all colors, turns of beacon detection
+	 */
 	public void clearColors() {
 		this.blue = null;
 		this.red = null;

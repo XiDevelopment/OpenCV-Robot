@@ -14,6 +14,10 @@ import android.os.Build;
 import android.util.AttributeSet;
 import android.util.Log;
 
+/**
+ * This class is needed to turn on some camera optimizations. 
+ * This is done in the setCameraOptimizationsOff() function.
+ */
 public class RobotCamera extends JavaCameraView implements PictureCallback {
 	private final String TAG = "JavaCameraViewClass";
 
@@ -65,6 +69,7 @@ public class RobotCamera extends JavaCameraView implements PictureCallback {
 
 		Parameters params = mCamera.getParameters();
 
+		// Camera Optimizations
 		params.setAutoExposureLock(true);
 		params.setAutoWhiteBalanceLock(true);
 		params.setWhiteBalance(Parameters.WHITE_BALANCE_WARM_FLUORESCENT);

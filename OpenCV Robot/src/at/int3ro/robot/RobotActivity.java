@@ -37,8 +37,6 @@ import at.int3ro.robot.model.DetectedBeacon;
 import at.int3ro.robot.model.DetectedObject;
 import at.int3ro.robot.model.RobotPosition;
 
-// Exercise 1.1
-
 public class RobotActivity extends Activity implements CvCameraViewListener2,
 		OnTouchListener {
 	private static final String TAG = "RobotActivity";
@@ -96,7 +94,6 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 		mOpenCvCameraView = (RobotCamera) findViewById(R.id.robot_activity_robot_surface_view);
 		mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
 		mOpenCvCameraView.setOnTouchListener(this);
-
 		mOpenCvCameraView.setCvCameraViewListener(this);
 
 		MoveFacade.getInstance().setContext(this);
@@ -146,6 +143,12 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 		return true;
 	}
 
+	/**
+	 * Writes the given String into the Textview via the main thread
+	 * 
+	 * @param text
+	 *            to write
+	 */
 	public void writeStatusText(final String text) {
 		final TextView status = (TextView) findViewById(R.id.status_text_view);
 		status.post(new Runnable() {
@@ -272,14 +275,15 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 			List<DetectedObject> detectedBalls = BallController.getInstance()
 					.searchImage(mRgba);
 
+			// State Machine
 			if (StateMachine.getInstance().getState() != State.START) {
-				// Test of State Machine
+				// Call update function on every frame
 				StateMachine.getInstance().update(detectedBalls,
 						detectedBeacons);
 			}
 			sb.append("\n" + StateMachine.getInstance().getState() + "\n");
 
-			// Calculate Position also when robot not running
+			// Calculate Position also when state machine not running
 			if (StateMachine.getInstance().getState() == State.START)
 				PositionController.getInstance().calculatePositions(
 						detectedBeacons);
@@ -290,56 +294,63 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 						+ PositionController.getInstance().getLastPosition()
 						+ "\n");
 
-			// Write Beacons to sb
+			// Display Beacons
 			for (DetectedBeacon beacon : detectedBeacons) {
+				// Draw boundaries
 				beacon.draw(mRgba, 3, new Scalar(0, 0, 0));
-				// sb.append("Beacon " + beacon.getGlobalCoordinate()
-				// + " detected!");
-				// if (Vision.getInstance().getHomography() != null) {
-				// Point realPoint = Vision.getInstance()
-				// .calculateHomographyPoint(beacon.getBottom());
-				// sb.append(" Distances: "
-				// + realPoint
-				// + " - "
-				// + PositionController.getInstance()
-				// .calculateDistance(realPoint,
-				// new Point(0, 0)));
-				// }
-				// sb.append("\n");
+
+				// Write beacon status
+				/*
+				 * sb.append("Beacon " + beacon.getGlobalCoordinate() +
+				 * " detected!"); if (Vision.getInstance().getHomography() !=
+				 * null) { Point realPoint = Vision.getInstance()
+				 * .calculateHomographyPoint(beacon.getBottom());
+				 * sb.append(" Distances: " + realPoint + " - " +
+				 * PositionController.getInstance()
+				 * .calculateDistance(realPoint, new Point(0, 0))); }
+				 * sb.append("\n");
+				 */
 			}
 
-			// Write balls to text
+			// Display Balls
 			for (DetectedObject ball : detectedBalls) {
+				// Draw boundaries
 				ball.draw(mRgba, 5);
 
-				// if (Vision.getInstance().getHomography() != null) {
-				// Point realPoint = Vision.getInstance()
-				// .calculateHomographyPoint(ball.getBottom());
-				// sb.append("Ball: "
-				// + realPoint
-				// + " - "
-				// + PositionController.getInstance()
-				// .calculateDistance(realPoint,
-				// new Point(0, 0)) + "\n");
-				// }
+				// Write Ball status
+				/*
+				 * if (Vision.getInstance().getHomography() != null) { Point
+				 * realPoint = Vision.getInstance()
+				 * .calculateHomographyPoint(ball.getBottom());
+				 * sb.append("Ball: " + realPoint + " - " +
+				 * PositionController.getInstance()
+				 * .calculateDistance(realPoint, new Point(0, 0)) + "\n"); }
+				 */
 			}
 
 		}
 
+		// Write gathered text in Stringbuilder to Textview
 		writeStatusText(sb.toString());
 
 		return mRgba;
 	}
 
+	/**
+	 * Stops the state machine if running, or set the color
+	 */
 	@Override
 	public boolean onTouch(View v, MotionEvent event) {
 		if (event.getAction() == MotionEvent.ACTION_DOWN) {
+
+			// Stops state machine when running
 			if (StateMachine.getInstance().getState() != State.START) {
 				StateMachine.getInstance().stop();
 				Toast.makeText(this, "StateMachine stopped!",
 						Toast.LENGTH_SHORT).show();
 			}
 
+			// Sets the detection color based on the colorSelect
 			switch (colorSelect) {
 			case Ball:
 				BallController.getInstance().setColor(
