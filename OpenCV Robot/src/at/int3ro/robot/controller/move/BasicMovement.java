@@ -21,6 +21,8 @@ public class BasicMovement {
 		return instance;
 	}
 
+	private boolean isCon = false;
+
 	@SuppressWarnings("unused")
 	private String TAG = "iRobot";
 	@SuppressWarnings("unused")
@@ -38,10 +40,13 @@ public class BasicMovement {
 		com = new FTDriver(
 				(UsbManager) context.getSystemService(Context.USB_SERVICE));
 
-		if (com != null)
-			return com.begin(9600);
-		else
+		if (com != null) {
+			isCon = com.begin(9600);
+			return isCon;
+		} else {
+			isCon = false;
 			return false;
+		}
 	}
 
 	/**
@@ -49,6 +54,7 @@ public class BasicMovement {
 	 */
 	public void disconnect() {
 		if (com != null) {
+			isCon = false;
 			ledOff();
 			com.end();
 		}
@@ -155,6 +161,12 @@ public class BasicMovement {
 		robotSetVelocity((byte) -30, (byte) -30);
 	}
 
+	// move forward slow
+	public void moveForward(int speed) {
+		// logText(comReadWrite(new byte[] { 'x', '\r', '\n' }));
+		robotSetVelocity((byte) speed, (byte) speed);
+	}
+
 	// lower bar a few degrees
 	public void lowerBar() {
 		comReadWrite(new byte[] { '-', '\r', '\n' });
@@ -185,7 +197,14 @@ public class BasicMovement {
 		robotSetLeds((byte) 0, (byte) 0);
 	}
 
-	public void sensor() {
-		comReadWrite(new byte[] { 'q', '\r', '\n' });
+	public String readSensors() {
+		return comReadWrite(new byte[] { 'q', '\r', '\n' });
+	}
+
+	/**
+	 * @return true if robot is connected
+	 */
+	public boolean isConnected() {
+		return isCon;
 	}
 }

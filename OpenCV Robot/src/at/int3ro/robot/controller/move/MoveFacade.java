@@ -243,6 +243,14 @@ public class MoveFacade {
 	}
 
 	/**
+	 * Moves forward till stopped
+	 */
+	public void move() {
+		Log.i(TAG, "move called");
+		basicMovement.moveForward(5);
+	}
+
+	/**
 	 * Turns the robot the given angle. > 0 rotates counter clockwise, < 0
 	 * rotates clockwise.
 	 * 
@@ -363,6 +371,27 @@ public class MoveFacade {
 				}
 			}
 		}
+	}
 
+	/**
+	 * Reads the sensors and returns the value for the front sensor
+	 * 
+	 * @return the distance
+	 */
+	public Integer readFrontSensor() {
+		String[] ssensors = BasicMovement.getInstance().readSensors()
+				.split(" ");
+		if (ssensors.length < 7)
+			return 255;
+		else
+			return Integer.decode(ssensors[6]);
+	}
+
+	/**
+	 * 
+	 * @return true if robot is connected
+	 */
+	public boolean isConnected() {
+		return BasicMovement.getInstance().isConnected();
 	}
 }

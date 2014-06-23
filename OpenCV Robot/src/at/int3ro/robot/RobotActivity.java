@@ -51,7 +51,7 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 	private MenuItem mItemAutoExposure = null;
 	private MenuItem mItemHomography = null;
 	private MenuItem mItemDrive = null;
-	private MenuItem mItemDriveTest = null;
+	private MenuItem mItemDriveObstacle = null;
 	private MenuItem mItemConnect = null;
 	private MenuItem mItemStart = null;
 	private MenuItem mItemRaiseBar = null;
@@ -59,6 +59,9 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 	private Mat mRgba = null;
 
 	private Beacon.Colors colorSelect = Beacon.Colors.None;
+
+	// Determines if the robot should drive streight, till it faces a obstacle
+	private boolean driveToObstacle = false;
 
 	private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
 		@Override
@@ -135,7 +138,7 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 
 		mItemConnect = menu.add("Connect");
 		mItemDrive = menu.add("Drive");
-		mItemDriveTest = menu.add("Drive Test");
+		mItemDriveObstacle = menu.add("Drive Obstacle");
 
 		mItemStart = menu.add("Start StateMachine");
 		mItemRaiseBar = menu.add("Raise Bar");
@@ -204,10 +207,10 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 				}
 
 			}
-		} else if (item == mItemDriveTest) {
+		} else if (item == mItemDriveObstacle) {
 			try {
-				MoveFacade.getInstance().move(10);
-				MoveFacade.getInstance().turnInPlace(90.0);
+				driveToObstacle = true;
+				MoveFacade.getInstance().move();
 				Toast.makeText(this, "Just Driving!", Toast.LENGTH_SHORT)
 						.show();
 			} catch (Exception ex) {
@@ -240,6 +243,17 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 		mRgba = inputFrame.rgba();
 		StringBuilder sb = new StringBuilder();
 
+		if (MoveFacade.getInstance().isConnected())
+			sb.append("-> " + MoveFacade.getInstance().readFrontSensor());
+		
+		// if robot is driving to obstacle
+		if (driveToObstacle) {
+			// checks the distance, and stop the robot
+			if (MoveFacade.getInstance().readFrontSensor() < 10) {
+				MoveFacade.getInstance().stopRobot();
+			}
+		}
+
 		Scalar color = null;
 		switch (colorSelect) {
 		case Blue:
@@ -268,7 +282,6 @@ public class RobotActivity extends Activity implements CvCameraViewListener2,
 					mRgba.height() / 2 + size);
 			Core.rectangle(mRgba, topLeft, bottomRight, color, 5);
 		} else {
-
 			List<DetectedBeacon> detectedBeacons = BeaconController
 					.getInstance().searchImage(mRgba);
 
