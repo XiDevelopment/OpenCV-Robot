@@ -8,10 +8,8 @@ import android.os.Build;
 import android.widget.TextView;
 
 /**
- * This class provides the functionalities of communication with the robot.
- * Main part of the code is used from Alexander Hirsch's RobotWASD.
- * 
- *
+ * This class provides the functionalities of communication with the robot. Main
+ * part of the code is used from Alexander Hirsch's RobotWASD.
  */
 @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR1)
 public class BasicMovement {
@@ -29,6 +27,12 @@ public class BasicMovement {
 	private TextView textLog;
 	private FTDriver com = null;
 
+	/**
+	 * Connects to the USB interface of the robot
+	 * 
+	 * @param context
+	 * @return true if successful
+	 */
 	public boolean connect(Context context) {
 		// TODO implement permission request
 		com = new FTDriver(
@@ -40,6 +44,9 @@ public class BasicMovement {
 			return false;
 	}
 
+	/**
+	 * Disconnects from the USB interface of the robot
+	 */
 	public void disconnect() {
 		if (com != null) {
 			ledOff();

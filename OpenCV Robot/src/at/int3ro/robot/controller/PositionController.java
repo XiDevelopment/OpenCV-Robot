@@ -27,6 +27,13 @@ public class PositionController {
 
 	private RobotPosition lastPosition;
 
+	/**
+	 * Tries to calculate the position of the robot given a list of beacons
+	 * 
+	 * @param beacons
+	 *            the list of beacons
+	 * @return true if successful
+	 */
 	public boolean calculatePositions(List<DetectedBeacon> beacons) {
 		boolean result = false;
 
@@ -52,6 +59,15 @@ public class PositionController {
 		return result;
 	}
 
+	/**
+	 * Calculates the position of the controller given two beacons
+	 * 
+	 * @param b1
+	 *            Beacon 1
+	 * @param b2
+	 *            Beacon 2
+	 * @return the robot position
+	 */
 	private RobotPosition calculateRobotPosition(DetectedBeacon b1,
 			DetectedBeacon b2) {
 		if (b1 == null || b2 == null)
@@ -88,7 +104,7 @@ public class PositionController {
 		Log.i(TAG, "dist3 from global between b1 und b2: " + dist3);
 		Log.i(TAG, "dist3calculated = " + calculateDistance(p1, p2));
 
-		//calculate angle at first beacon
+		// calculate angle at first beacon
 		double beta1 = Math
 				.acos((Math.pow(dist3, 2) + Math.pow(dist1, 2) - Math.pow(
 						dist2, 2)) / (2.0 * dist3 * dist1));
@@ -97,14 +113,14 @@ public class PositionController {
 		double beta2 = Math.PI / 2 - beta1;
 		Log.i(TAG, "beta2: " + beta2 + ";Degrees: " + Math.toDegrees(beta2));
 
-		//check if angle is greater than 90 degrees
+		// check if angle is greater than 90 degrees
 		double rot = 1.0;
 		if (beta2 < 0) {
 			beta2 = Math.abs(beta2);
 			rot = -1.0;
 		}
 		Log.i(TAG, "rot = " + rot);
-		//calculate robot offset
+		// calculate robot offset
 		x = dist1 * Math.sin(beta2);
 		y = dist1 * Math.cos(beta2);
 
@@ -145,8 +161,7 @@ public class PositionController {
 		/**
 		 * Calculation of Angle
 		 */
-		double angle = getAngle(b1, result,
-				dist1);
+		double angle = getAngle(b1, result, dist1);
 		// double angle = 90;
 
 		RobotPosition position = new RobotPosition(result, angle);
@@ -155,25 +170,51 @@ public class PositionController {
 
 		return position;
 	}
-	
+
+	/**
+	 * Calculates the distance from the origin to a point
+	 * 
+	 * @param point
+	 *            to
+	 * @return distance from 0,0 to the point
+	 */
 	public double calculateDistance(Point point) {
-		return calculateDistance(point, new Point(0,0));
+		return calculateDistance(point, new Point(0, 0));
 	}
 
+	/**
+	 * Calculates the distance between two points
+	 * 
+	 * @param x1
+	 *            Point from x
+	 * @param y1
+	 *            Point from y
+	 * @param x2
+	 *            Point to x
+	 * @param y2
+	 *            Point to y
+	 * @return the distance
+	 */
 	public double calculateDistance(double x1, double y1, double x2, double y2) {
 		return calculateDistance(new Point(x1, y1), new Point(x2, y2));
 	}
 
+	/**
+	 * Calculates the distance between two points
+	 * 
+	 * @param p1
+	 *            Point from
+	 * @param p2
+	 *            Point to
+	 * @return the distance
+	 */
 	public double calculateDistance(Point p1, Point p2) {
 		double x = Math.pow(p1.x - p2.x, 2);
 		double y = Math.pow(p1.y - p2.y, 2);
 		double distance = Math.sqrt(x + y);
-		
-		
-		
 		return distance;
 	}
-	
+
 	/**
 	 * @return the lastPosition
 	 */
@@ -182,6 +223,7 @@ public class PositionController {
 	}
 
 	/**
+	 * Calculates the angle the robot is facing
 	 * 
 	 * @param x
 	 *            distance to beacon from center (positive for right or
@@ -281,8 +323,11 @@ public class PositionController {
 
 	/**
 	 * Adds a log entry with type of movement and the amount.
-	 * @param move type of movement
-	 * @param amount amount of movement
+	 * 
+	 * @param move
+	 *            type of movement
+	 * @param amount
+	 *            amount of movement
 	 */
 	public void addLog(Movement move, double amount) {
 		Log.i(TAG, "addLog called with movement: " + move + ", amount: "
@@ -292,6 +337,7 @@ public class PositionController {
 
 	/**
 	 * Returns the log in reverse order for the undo function in the MoveFacade.
+	 * 
 	 * @return a list with MoveLog entries
 	 */
 	public LinkedList<MoveLog> getLogUndo() {

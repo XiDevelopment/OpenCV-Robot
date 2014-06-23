@@ -38,7 +38,7 @@ public class MoveFacade {
 						try {
 							Thread.sleep(100);
 						} catch (InterruptedException e) {
-							//do nothing
+							// do nothing
 						}
 					}
 					threadQueue.peek().start();
@@ -67,28 +67,31 @@ public class MoveFacade {
 	 */
 	public void setContext(Context context) {
 		this.context = context;
-		if( this.connectRobot() ) {
+		if (this.connectRobot()) {
 			blinkingLED(1, 3.0);
 		}
-		
+
 	}
-	
+
 	/**
 	 * this function lets the LED's blink for a defined count and time.
-	 * @param count amount of times the LED's should blink
-	 * @param time how long the LED's stay on and off
+	 * 
+	 * @param count
+	 *            amount of times the LED's should blink
+	 * @param time
+	 *            how long the LED's stay on and off
 	 */
 	public void blinkingLED(int count, final double time) {
-		for(int i = 0; i < count; i++) {
+		for (int i = 0; i < count; i++) {
 			threadQueue.add(new Thread() {
 				public void run() {
 					try {
 						basicMovement.ledOn();
-						sleep((long) (time*1000));
+						sleep((long) (time * 1000));
 						basicMovement.ledOff();
-						sleep((long) (time*1000));
+						sleep((long) (time * 1000));
 					} catch (Exception ex) {
-						//do nothing
+						// do nothing
 					} finally {
 						basicMovement.ledOff();
 					}
@@ -97,6 +100,11 @@ public class MoveFacade {
 		}
 	}
 
+	/**
+	 * Connects to the robot.
+	 * 
+	 * @return true if successful
+	 */
 	public boolean connectRobot() {
 		if (context != null)
 			return basicMovement.connect(context);
@@ -215,7 +223,7 @@ public class MoveFacade {
 	 */
 	public void move(final double cm) {
 		Log.i(TAG, "move called");
-	
+
 		threadQueue.add(new Thread() {
 			@Override
 			public void run() {
@@ -263,8 +271,11 @@ public class MoveFacade {
 	}
 
 	/**
-	 * Turns the robot in place that means it turns each wheel in different direction.
-	 * @param angle amount in degrees how much to turn
+	 * Turns the robot in place that means it turns each wheel in different
+	 * direction.
+	 * 
+	 * @param angle
+	 *            amount in degrees how much to turn
 	 */
 	public void turnInPlace(final double angle) {
 		Log.i(TAG, "turnInPlace called with angle: " + angle);
@@ -296,8 +307,8 @@ public class MoveFacade {
 			public void run() {
 				try {
 					basicMovement.fixedBarHigh();
-				} catch(Exception e) {
-					
+				} catch (Exception e) {
+
 				}
 			}
 		});
@@ -313,43 +324,45 @@ public class MoveFacade {
 			public void run() {
 				try {
 					basicMovement.fixedBarLow();
-				} catch(Exception e) {
-					
+				} catch (Exception e) {
+
 				}
 			}
 		});
 	}
-	
+
 	/**
 	 * Stops the robot immediatly and cancels all threads.
 	 */
 	public void stopRobot() {
 		Log.i(TAG, "stopRobot called");
 		basicMovement.stop();
-		if(this.isActive()) {
+		if (this.isActive()) {
 			Thread t = threadQueue.peek();
 			threadQueue.clear();
 			t.interrupt();
-			if(!threadQueue.isEmpty())
+			if (!threadQueue.isEmpty())
 				stopRobot();
 		}
 	}
-	
+
 	/**
 	 * Takes the reversed log and undoes all movement.
-	 * @param log LinkedList from the PositionController
+	 * 
+	 * @param log
+	 *            LinkedList from the PositionController
 	 */
 	public void undoLog(LinkedList<MoveLog> log) {
 		Log.i(TAG, "undoLog called with log: " + log.toString());
-		if(!log.isEmpty()) {
-			for(MoveLog ml : log) {
-				if(ml.getMovement() == Movement.MOVE) {
-					this.move(-(ml.getAmount()/10.0));
+		if (!log.isEmpty()) {
+			for (MoveLog ml : log) {
+				if (ml.getMovement() == Movement.MOVE) {
+					this.move(-(ml.getAmount() / 10.0));
 				} else {
 					this.turnInPlace(-(ml.getAmount()));
 				}
 			}
 		}
-		
+
 	}
 }
