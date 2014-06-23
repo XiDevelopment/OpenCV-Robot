@@ -38,14 +38,14 @@ public class MoveFacade {
 						try {
 							Thread.sleep(100);
 						} catch (InterruptedException e) {
-							// TODO Auto-generated catch block
+							//do nothing
 						}
 					}
 					threadQueue.peek().start();
 					try {
 						threadQueue.peek().join();
 					} catch (InterruptedException e) {
-						// TODO Auto-generated catch block
+						// do nothing
 					}
 					// removing the first object after it has finished
 					threadQueue.poll();
@@ -262,6 +262,10 @@ public class MoveFacade {
 		});
 	}
 
+	/**
+	 * Turns the robot in place that means it turns each wheel in different direction.
+	 * @param angle amount in degrees how much to turn
+	 */
 	public void turnInPlace(final double angle) {
 		Log.i(TAG, "turnInPlace called with angle: " + angle);
 		threadQueue.add(new Thread() {
@@ -316,6 +320,9 @@ public class MoveFacade {
 		});
 	}
 	
+	/**
+	 * Stops the robot immediatly and cancels all threads.
+	 */
 	public void stopRobot() {
 		Log.i(TAG, "stopRobot called");
 		basicMovement.stop();
@@ -328,6 +335,10 @@ public class MoveFacade {
 		}
 	}
 	
+	/**
+	 * Takes the reversed log and undoes all movement.
+	 * @param log LinkedList from the PositionController
+	 */
 	public void undoLog(LinkedList<MoveLog> log) {
 		Log.i(TAG, "undoLog called with log: " + log.toString());
 		if(!log.isEmpty()) {

@@ -88,6 +88,7 @@ public class PositionController {
 		Log.i(TAG, "dist3 from global between b1 und b2: " + dist3);
 		Log.i(TAG, "dist3calculated = " + calculateDistance(p1, p2));
 
+		//calculate angle at first beacon
 		double beta1 = Math
 				.acos((Math.pow(dist3, 2) + Math.pow(dist1, 2) - Math.pow(
 						dist2, 2)) / (2.0 * dist3 * dist1));
@@ -96,16 +97,18 @@ public class PositionController {
 		double beta2 = Math.PI / 2 - beta1;
 		Log.i(TAG, "beta2: " + beta2 + ";Degrees: " + Math.toDegrees(beta2));
 
+		//check if angle is greater than 90 degrees
 		double rot = 1.0;
 		if (beta2 < 0) {
 			beta2 = Math.abs(beta2);
 			rot = -1.0;
 		}
 		Log.i(TAG, "rot = " + rot);
+		//calculate robot offset
 		x = dist1 * Math.sin(beta2);
 		y = dist1 * Math.cos(beta2);
 
-		// 3
+		// switch offset in case x and y are not correct in real world
 		if ((b1.getGlobalCoordinate().x == 1500 && b2.getGlobalCoordinate().x == 1500)
 				|| (b1.getGlobalCoordinate().x == 0 && b2.getGlobalCoordinate().x == 0)) {
 			double temp = x;
@@ -116,7 +119,7 @@ public class PositionController {
 		}
 
 		Point result = new Point();
-		// 1
+		// check for x coordinate and either add or subtract the offset
 		Log.i(TAG, "x=" + x + "   y=" + y);
 		if (b1.getGlobalCoordinate().x == 0)
 			result.x = b1.getGlobalCoordinate().x + x;
@@ -127,7 +130,7 @@ public class PositionController {
 		else if (b2.getGlobalCoordinate().x == 1500)
 			result.x = b1.getGlobalCoordinate().x + (rot * x);
 
-		// 2
+		// check for y coordinate and either add or subtract the offset
 		if (b1.getGlobalCoordinate().y == 0)
 			result.y = b1.getGlobalCoordinate().y + y;
 		else if (b1.getGlobalCoordinate().y == 1500)
@@ -276,12 +279,21 @@ public class PositionController {
 		return Math.toDegrees(alpha3);
 	}
 
+	/**
+	 * Adds a log entry with type of movement and the amount.
+	 * @param move type of movement
+	 * @param amount amount of movement
+	 */
 	public void addLog(Movement move, double amount) {
 		Log.i(TAG, "addLog called with movement: " + move + ", amount: "
 				+ amount);
 		logList.add(new MoveLog(move, amount));
 	}
 
+	/**
+	 * Returns the log in reverse order for the undo function in the MoveFacade.
+	 * @return a list with MoveLog entries
+	 */
 	public LinkedList<MoveLog> getLogUndo() {
 		Log.i(TAG, "getLogUndo called");
 		LinkedList<MoveLog> ll = new LinkedList<MoveLog>();
@@ -290,6 +302,9 @@ public class PositionController {
 		return ll;
 	}
 
+	/**
+	 * Clears the log.
+	 */
 	public void clearLog() {
 		Log.i(TAG, "clearLog called");
 		logList.clear();
