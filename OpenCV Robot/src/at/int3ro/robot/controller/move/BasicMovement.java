@@ -7,6 +7,12 @@ import android.hardware.usb.UsbManager;
 import android.os.Build;
 import android.widget.TextView;
 
+/**
+ * This class provides the functionalities of communication with the robot.
+ * Main part of the code is used from Alexander Hirsch's RobotWASD.
+ * 
+ *
+ */
 @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR1)
 public class BasicMovement {
 	private static BasicMovement instance = null;
